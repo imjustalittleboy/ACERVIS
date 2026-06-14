@@ -1,0 +1,16 @@
+{
+  "name": "acervis-protocol",
+  "version": "3.0.0",
+  "description": "Pan-Nigerian Blockchain Credential Protocol",
+  "main": "index.html",
+  "scripts": {
+    "start": "serve ."
+  },
+  "dependencies": {
+    "@neondatabase/serverless": "^0.9.3",
+    "ethers": "^6.12.1"
+  },
+  "devDependencies": {
+    "serve": "^14.2.3"
+  }
+}

@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Verification Portal | ACERVIS Protocol</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/void.css">
+    <style>
+        .portal-container {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 100px 20px;
+            text-align: center;
+        }
+        .portal-card {
+            background: var(--abyss-raised);
+            border: 1px solid var(--border-subtle);
+            border-radius: 24px;
+            padding: 48px;
+            width: 100%;
+            max-width: 600px;
+            backdrop-filter: blur(20px);
+        }
+    </style>
+</head>
+<body class="bg-black text-white">
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+    
+    <header id="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">ACERVIS</a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <button onclick="toggleTheme()" class="nav-link" style="font-size: 1.1rem; cursor: none; background: none; border: none; padding: 0;">🌓</button>
+            </div>
+            <a href="index.html" class="nav-cta">Back to Protocol</a>
+        </div>
+    </header>
+
+    <main class="portal-container">
+        <div class="portal-card reveal">
+            <div class="eyebrow eyebrow-center">Verification Engine v3.0</div>
+            <h1 class="section-title">Query the <em>Ledger</em></h1>
+            <p class="section-body" style="margin: 20px auto;">Enter the 16-digit National Credential Number (NCN) printed on the certificate.</p>
+            
+            <div class="hero-ncn-bar" style="max-width: 100%; margin-top: 32px;">
+                <span class="ncn-prefix">NCN</span>
+                <input type="text" class="ncn-input" id="portal-input" placeholder="ADUN-2025-0001-SE" maxlength="20">
+                <button class="ncn-verify-btn" onclick="startVerification()">Verify →</button>
+            </div>
+
+            <div id="portal-result" style="margin-top: 40px; display: none;">
+                <!-- Results will be injected here -->
+            </div>
+        </div>
+    </main>
+
+    <script src="assets/js/core.js"></script>
+    <script>
+        function startVerification() {
+            const input = document.getElementById('portal-input').value;
+            const resultDiv = document.getElementById('portal-result');
+            if (input.length < 5) return;
+
+            resultDiv.style.display = 'block';
+            resultDiv.innerHTML = '<div class="mono t-info">Accessing Polygon Amoy node...</div>';
+            
+            setTimeout(() => {
+                resultDiv.innerHTML = `
+                    <div class="demo-state-icon icon-verified" style="margin: 0 auto 20px;">
+                        <svg viewBox="0 0 32 32" fill="none" stroke="var(--success)" stroke-width="2">
+                            <path d="M16 4l10 6v12L16 28 6 22V10L16 4z"/><path d="M11 16l3.5 3.5L21 12"/>
+                        </svg>
+                    </div>
+                    <h3 class="demo-state-message">VERIFIED</h3>
+                    <div class="demo-hash-row" style="max-width: 100%;">
+                        <span>NCN:</span> ${input}<br>
+                        <span>STATUS:</span> ACTIVE ON LEDGER
+                    </div>
+                `;
+            }, 1500);
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Super Admin | ACERVIS Protocol</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/void.css">
+    <style>
+        .admin-grid {
+            display: grid;
+            grid-template-columns: 280px 1fr;
+            min-height: 100vh;
+        }
+        .sidebar {
+            background: var(--abyss);
+            border-right: 1px solid var(--border-subtle);
+            padding: 40px 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 32px;
+        }
+        .main-content {
+            padding: 60px;
+            background: var(--void);
+            overflow-y: auto;
+        }
+        .institution-form {
+            background: var(--abyss-raised);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 600px;
+            margin-top: 40px;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        .form-group label {
+            display: block;
+            font-size: 0.65rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.1em;
+            margin-bottom: 8px;
+        }
+        input, select {
+            width: 100%;
+            background: var(--void);
+            border: 1px solid var(--border-muted);
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            font-family: inherit;
+        }
+        input:focus {
+            border-color: var(--gold);
+            outline: none;
+        }
+    </style>
+</head>
+<body class="bg-black text-white">
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+
+    <div class="admin-grid">
+        <aside class="sidebar">
+            <div class="nav-logo">ACERVIS</div>
+            <nav style="display: flex; flex-direction: column; gap: 12px;">
+                <a href="#" class="nav-link active">Global Overview</a>
+                <a href="#" class="nav-link">Manage Institutions</a>
+                <a href="#" class="nav-link">Network Governance</a>
+                <a href="#" class="nav-link">System Audit</a>
+            </nav>
+            <div style="margin-top: auto;">
+                <div class="footer-meta-item"><span>SUPER_ADMIN:</span> Active</div>
+                <a href="index.html" class="btn btn-ghost" style="margin-top: 20px; width: 100%;">Exit Console</a>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div class="reveal">
+                <div class="eyebrow">Protocol Governance</div>
+                <h1 class="section-title">Institutional <em>Onboarding</em></h1>
+                <p class="section-body">Create a new institutional profile and allocate issuance quotas.</p>
+            </div>
+
+            <div class="institution-form reveal delay-100">
+                <div class="form-group">
+                    <label>Institution Name</label>
+                    <input type="text" placeholder="e.g. Admiralty University of Nigeria">
+                </div>
+                <div class="form-group">
+                    <label>Institution Type</label>
+                    <select>
+                        <option>University (BSc, BA, BEd)</option>
+                        <option>Polytechnic (OND, HND)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Issuance Quota</label>
+                    <input type="number" placeholder="e.g. 10000">
+                </div>
+                <div class="form-group">
+                    <label>Admin Email</label>
+                    <input type="email" placeholder="registrar@university.edu.ng">
+                </div>
+                <button class="btn btn-primary" style="width: 100%; margin-top: 20px;">Authorize Institution</button>
+            </div>
+
+            <div class="table-container reveal delay-200" style="margin-top: 60px;">
+                <h2 class="section-title" style="font-size: 1.2rem; margin-bottom: 20px;">Authorized Institutions</h2>
+                <table style="width: 100%; border-collapse: collapse;">
+                    <thead>
+                        <tr>
+                            <th>Institution</th>
+                            <th>Type</th>
+                            <th>Quota</th>
+                            <th>Status</th>
+                            <th>Token ID</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>Admiralty University</td>
+                            <td>University</td>
+                            <td>10,000</td>
+                            <td><span class="status-badge badge-verified">Active</span></td>
+                            <td class="mono">ADUN-9X2F-7K</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </main>
+    </div>
+
+    <script src="assets/js/core.js"></script>
+</body>
+</html>

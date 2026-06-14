@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Protocol | ACERVIS Infrastructure</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/void.css">
+    <style>
+        .protocol-content {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 140px 20px;
+        }
+        .protocol-section {
+            margin-bottom: 80px;
+        }
+        .protocol-text {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: var(--text-mid);
+            margin-bottom: 24px;
+        }
+        .protocol-h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.5rem;
+            margin-bottom: 32px;
+            color: var(--gold);
+        }
+        code {
+            background: var(--abyss-raised);
+            padding: 2px 6px;
+            border-radius: 4px;
+            color: var(--gold-bright);
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.9em;
+        }
+    </style>
+</head>
+<body class="bg-black text-white">
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+
+    <header id="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">ACERVIS</a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="portal.html" class="nav-link">Verify</a>
+                <button onclick="toggleTheme()" class="nav-link" style="font-size: 1.1rem; cursor: none; background: none; border: none; padding: 0;">🌓</button>
+            </div>
+            <a href="admin.html" class="nav-cta">Admin Portal</a>
+        </div>
+    </header>
+
+    <main class="protocol-content">
+        <article class="reveal">
+            <div class="eyebrow">Technical Thesis v3.0</div>
+            <h1 class="section-title" style="margin-bottom: 40px;">The <em>ACERVIS</em> Protocol</h1>
+            
+            <section class="protocol-section">
+                <h2 class="protocol-h2">1. Introduction</h2>
+                <p class="protocol-text">
+                    The ACERVIS protocol is a decentralized infrastructure designed to anchor academic credentials to the Polygon blockchain. 
+                    It solves the "Double-Spend of Trust" in Nigerian education by ensuring that once a degree is issued, its cryptographic 
+                    footprint is immutable and globally verifiable.
+                </p>
+            </section>
+
+            <section class="protocol-section">
+                <h2 class="protocol-h2">2. Cryptographic Synthesis</h2>
+                <p class="protocol-text">
+                    Every credential is reduced to a deterministic SHA-256 hash using the formula:
+                </p>
+                <div class="math-card" style="margin: 40px 0;">
+                    <div class="math-formula">D = H( P ‖ σ ‖ ρ )</div>
+                </div>
+                <p class="protocol-text">
+                    Where <code>P</code> is the student metadata, <code>σ</code> is a row-level salt, and <code>ρ</code> is a global pepper. 
+                    This 3-tier entropy ensures that even if the database is breached, the blockchain anchors cannot be spoofed.
+                </p>
+            </section>
+
+            <section class="protocol-section">
+                <h2 class="protocol-h2">3. Institutional Governance</h2>
+                <p class="protocol-text">
+                    The protocol distinguishes between <strong>Super Admins</strong> (Governance) and <strong>Institutions</strong> (Issuers). 
+                    Institutions are granted issuance quotas by the Super Admin, preventing a single entity from flooding the network.
+                </p>
+            </section>
+
+            <section class="protocol-section">
+                <h2 class="protocol-h2">4. Blockchain Layer</h2>
+                <p class="protocol-text">
+                    We utilize Polygon L2 for its high throughput and low gas fees. The <code>AcervisRegistry.sol</code> contract 
+                    maintains the state of all anchored credentials, supporting both permanent revocation and temporary suspension.
+                </p>
+            </section>
+        </article>
+    </main>
+
+    <script src="assets/js/core.js"></script>
+</body>
+</html>
