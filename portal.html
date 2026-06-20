@@ -24,8 +24,112 @@
             border-radius: 24px;
             padding: 48px;
             width: 100%;
-            max-width: 600px;
+            max-width: 680px;
             backdrop-filter: blur(20px);
+        }
+        .result-card {
+            background: var(--abyss-raised);
+            border: 1px solid var(--border-subtle);
+            border-radius: 20px;
+            padding: 36px;
+            margin-top: 40px;
+            text-align: left;
+            display: none;
+        }
+        .result-card.visible { display: block; }
+        .result-card.verified { border-color: rgba(46, 204, 140, 0.3); }
+        .result-card.revoked { border-color: rgba(229, 57, 53, 0.3); }
+        .result-card.suspended { border-color: rgba(255, 193, 7, 0.3); }
+        .result-card.tampered { border-color: rgba(255, 143, 0, 0.3); }
+        .result-card.notfound { border-color: rgba(84, 110, 138, 0.3); }
+        .result-card.error { border-color: rgba(229, 57, 53, 0.3); }
+        .result-header {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+            margin-bottom: 28px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid var(--border-faint);
+        }
+        .result-icon {
+            width: 48px; height: 48px;
+            border-radius: 50%;
+            display: grid;
+            place-items: center;
+            flex-shrink: 0;
+        }
+        .result-icon svg { width: 24px; height: 24px; }
+        .result-title {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 1.6rem;
+            font-weight: 400;
+        }
+        .result-subtitle {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-family: 'JetBrains Mono', monospace;
+            letter-spacing: 0.1em;
+        }
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .result-field {
+            background: var(--glass-light);
+            border: 1px solid var(--border-faint);
+            border-radius: 10px;
+            padding: 14px 16px;
+        }
+        .result-field.full { grid-column: span 2; }
+        .result-field-key {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55rem;
+            letter-spacing: 0.15em;
+            color: var(--text-faint);
+            display: block;
+            margin-bottom: 4px;
+        }
+        .result-field-val {
+            font-size: 0.85rem;
+            color: var(--text-high);
+            font-weight: 500;
+        }
+        .result-field-val.mono {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            word-break: break-all;
+        }
+        .result-blockchain {
+            margin-top: 20px;
+            padding: 16px;
+            background: var(--glass-light);
+            border-radius: 10px;
+            border: 1px solid var(--border-faint);
+        }
+        .result-blockchain-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.55rem;
+            letter-spacing: 0.15em;
+            color: var(--gold);
+            margin-bottom: 8px;
+        }
+        .loading-dots::after {
+            content: '';
+            animation: dots 1.5s steps(4, end) infinite;
+        }
+        @keyframes dots {
+            0% { content: ''; }
+            25% { content: '.'; }
+            50% { content: '..'; }
+            75% { content: '...'; }
+            100% { content: ''; }
+        }
+        .loading-text {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 40px;
         }
     </style>
 </head>
@@ -48,45 +152,189 @@
         <div class="portal-card reveal">
             <div class="eyebrow eyebrow-center">Verification Engine v3.0</div>
             <h1 class="section-title">Query the <em>Ledger</em></h1>
-            <p class="section-body" style="margin: 20px auto;">Enter the 16-digit National Credential Number (NCN) printed on the certificate.</p>
+            <p class="section-body" style="margin: 20px auto;">Enter the National Credential Number (NCN) printed on the certificate.</p>
             
             <div class="hero-ncn-bar" style="max-width: 100%; margin-top: 32px;">
                 <span class="ncn-prefix">NCN</span>
-                <input type="text" class="ncn-input" id="portal-input" placeholder="ADUN-2025-0001-SE" maxlength="20">
-                <button class="ncn-verify-btn" onclick="startVerification()">Verify →</button>
+                <input type="text" class="ncn-input" id="portal-input" placeholder="ADUN-2025-A3F8D9C2" maxlength="20">
+                <button class="ncn-verify-btn" id="portal-verify-btn">Verify →</button>
+            </div>
+            <span class="ncn-example-tag" style="margin-top: 8px;">e.g. ADUN-2025-A3F8D9C2</span>
+
+            <div id="loading-state" class="loading-text" style="display: none;">
+                <span>⟳ Querying Polygon Amoy node</span><span class="loading-dots"></span>
             </div>
 
-            <div id="portal-result" style="margin-top: 40px; display: none;">
-                <!-- Results will be injected here -->
-            </div>
+            <div id="portal-result"></div>
         </div>
     </main>
 
     <script src="assets/js/core.js"></script>
     <script>
-        function startVerification() {
-            const input = document.getElementById('portal-input').value;
-            const resultDiv = document.getElementById('portal-result');
-            if (input.length < 5) return;
-
-            resultDiv.style.display = 'block';
-            resultDiv.innerHTML = '<div class="mono t-info">Accessing Polygon Amoy node...</div>';
-            
-            setTimeout(() => {
-                resultDiv.innerHTML = `
-                    <div class="demo-state-icon icon-verified" style="margin: 0 auto 20px;">
-                        <svg viewBox="0 0 32 32" fill="none" stroke="var(--success)" stroke-width="2">
-                            <path d="M16 4l10 6v12L16 28 6 22V10L16 4z"/><path d="M11 16l3.5 3.5L21 12"/>
-                        </svg>
-                    </div>
-                    <h3 class="demo-state-message">VERIFIED</h3>
-                    <div class="demo-hash-row" style="max-width: 100%;">
-                        <span>NCN:</span> ${input}<br>
-                        <span>STATUS:</span> ACTIVE ON LEDGER
-                    </div>
-                `;
-            }, 1500);
+        function getStateConfig(state) {
+            const configs = {
+                VERIFIED: {
+                    css: 'verified',
+                    icon: '<svg viewBox="0 0 32 32" fill="none" stroke="var(--success)" stroke-width="2"><path d="M16 4l10 6v12L16 28 6 22V10L16 4z"/><path d="M11 16l3.5 3.5L21 12"/></svg>',
+                    title: 'Credential Verified',
+                    subtitle: '// STATE: VERIFIED — Blockchain hash matches computed digest',
+                    iconBg: 'rgba(46, 204, 140, 0.12)',
+                    iconBorder: 'rgba(46, 204, 140, 0.3)',
+                    iconColor: 'var(--success)'
+                },
+                SUSPENDED: {
+                    css: 'suspended',
+                    icon: '<svg viewBox="0 0 32 32" fill="none" stroke="#FFC107" stroke-width="2"><path d="M16 6l10 18H6L16 6z"/><circle cx="16" cy="22" r="1.5" fill="#FFC107"/><path d="M16 12v6"/></svg>',
+                    title: 'Credential Suspended',
+                    subtitle: '// STATE: SUSPENDED — Pending re-verification by institution',
+                    iconBg: 'rgba(255, 193, 7, 0.12)',
+                    iconBorder: 'rgba(255, 193, 7, 0.3)',
+                    iconColor: '#FFC107'
+                },
+                REVOKED: {
+                    css: 'revoked',
+                    icon: '<svg viewBox="0 0 32 32" fill="none" stroke="var(--revoked)" stroke-width="2"><circle cx="16" cy="16" r="10"/><path d="M12 12l8 8M20 12l-8 8"/></svg>',
+                    title: 'Credential Revoked',
+                    subtitle: '// STATE: REVOKED — Rescinded by issuing institution',
+                    iconBg: 'rgba(229, 57, 53, 0.12)',
+                    iconBorder: 'rgba(229, 57, 53, 0.3)',
+                    iconColor: 'var(--revoked)'
+                },
+                TAMPERED: {
+                    css: 'tampered',
+                    icon: '<svg viewBox="0 0 32 32" fill="none" stroke="var(--tampered)" stroke-width="2"><path d="M16 6l10 18H6L16 6z"/><path d="M16 14v5M16 22v1"/></svg>',
+                    title: 'Integrity Failure',
+                    subtitle: '// STATE: TAMPERED — Metadata does not produce the anchored hash',
+                    iconBg: 'rgba(255, 143, 0, 0.12)',
+                    iconBorder: 'rgba(255, 143, 0, 0.3)',
+                    iconColor: 'var(--tampered)'
+                },
+                NOT_FOUND: {
+                    css: 'notfound',
+                    icon: '<svg viewBox="0 0 32 32" fill="none" stroke="var(--notfound)" stroke-width="2"><circle cx="14" cy="14" r="8"/><path d="M20 20l6 6"/></svg>',
+                    title: 'Record Not Found',
+                    subtitle: '// STATE: NOT_FOUND — NCN not registered on ACERVIS ledger',
+                    iconBg: 'rgba(84, 110, 138, 0.12)',
+                    iconBorder: 'rgba(84, 110, 138, 0.3)',
+                    iconColor: 'var(--notfound)'
+                }
+            };
+            return configs[state] || configs.NOT_FOUND;
         }
+
+        function displayResult(data) {
+            const container = document.getElementById('portal-result');
+            const loading = document.getElementById('loading-state');
+            loading.style.display = 'none';
+
+            const state = data.state || 'NOT_FOUND';
+            const cfg = getStateConfig(state);
+            const meta = data.metadata || {};
+            const bc = data.blockchain || {};
+
+            let fieldsHtml = '';
+            if (state === 'VERIFIED' || state === 'SUSPENDED' || state === 'REVOKED') {
+                fieldsHtml = `
+                    <div class="result-grid">
+                        <div class="result-field"><span class="result-field-key">// STUDENT NAME</span><span class="result-field-val">${escapeHtml(meta.student_name || '—')}</span></div>
+                        <div class="result-field"><span class="result-field-key">// INSTITUTION</span><span class="result-field-val">${escapeHtml(meta.institution_name || '—')}</span></div>
+                        <div class="result-field"><span class="result-field-key">// DEGREE</span><span class="result-field-val">${escapeHtml(meta.degree_type || '—')} · ${escapeHtml(meta.course_name || '—')}</span></div>
+                        <div class="result-field"><span class="result-field-key">// MATRIC NUMBER</span><span class="result-field-val mono">${escapeHtml(meta.matric_number || '—')}</span></div>
+                        <div class="result-field"><span class="result-field-key">// GRADUATION YEAR</span><span class="result-field-val">${meta.grad_year || '—'}</span></div>
+                        <div class="result-field"><span class="result-field-key">// NCN</span><span class="result-field-val mono">${escapeHtml(meta.ncn || '—')}</span></div>
+                    </div>
+                    ${bc.anchoredAt ? `
+                    <div class="result-blockchain">
+                        <div class="result-blockchain-title">◈ POLYGON AMOY PROOF</div>
+                        <div class="result-grid" style="margin-top: 8px;">
+                            <div class="result-field"><span class="result-field-key">// ANCHORED AT</span><span class="result-field-val mono">${new Date(bc.anchoredAt * 1000).toLocaleString()}</span></div>
+                            <div class="result-field"><span class="result-field-key">// ISSUED BY</span><span class="result-field-val mono">${bc.issuedBy ? bc.issuedBy.slice(0, 10) + '...' + bc.issuedBy.slice(-6) : '—'}</span></div>
+                        </div>
+                    </div>` : ''}
+                `;
+            }
+
+            container.innerHTML = `
+                <div class="result-card visible ${cfg.css}">
+                    <div class="result-header">
+                        <div class="result-icon" style="background: ${cfg.iconBg}; border: 1.5px solid ${cfg.iconBorder};">
+                            <div style="color: ${cfg.iconColor};">${cfg.icon}</div>
+                        </div>
+                        <div>
+                            <div class="result-title">${cfg.title}</div>
+                            <div class="result-subtitle">${cfg.subtitle}</div>
+                        </div>
+                    </div>
+                    ${fieldsHtml}
+                </div>
+            `;
+        }
+
+        function escapeHtml(str) {
+            const div = document.createElement('div');
+            div.textContent = str;
+            return div.innerHTML;
+        }
+
+        function startVerification(ncn) {
+            const loading = document.getElementById('loading-state');
+            const container = document.getElementById('portal-result');
+            const input = document.getElementById('portal-input');
+            const btn = document.getElementById('portal-verify-btn');
+
+            const query = ncn || input.value.trim();
+            if (query.length < 5) return;
+
+            if (ncn) input.value = ncn;
+
+            btn.disabled = true;
+            btn.textContent = '⟳ Verifying...';
+            container.innerHTML = '';
+            loading.style.display = 'block';
+
+            fetch('/api/v1/verify?ncn=' + encodeURIComponent(query))
+                .then(res => res.json())
+                .then(data => {
+                    displayResult(data);
+                })
+                .catch(err => {
+                    loading.style.display = 'none';
+                    container.innerHTML = `
+                        <div class="result-card visible error">
+                            <div class="result-header">
+                                <div class="result-icon" style="background: rgba(229,57,53,0.12); border: 1.5px solid rgba(229,57,53,0.3);">
+                                    <svg viewBox="0 0 32 32" fill="none" stroke="var(--revoked)" stroke-width="2" style="width:24px;height:24px;">
+                                        <circle cx="16" cy="16" r="10"/><path d="M12 12l8 8M20 12l-8 8"/>
+                                    </svg>
+                                </div>
+                                <div>
+                                    <div class="result-title">Connection Error</div>
+                                    <div class="result-subtitle">// ACV_500 — Unable to reach the verification node</div>
+                                </div>
+                            </div>
+                            <p style="color:var(--text-muted);font-size:0.8rem;">${escapeHtml(err.message || 'Network request failed. The API server may be offline.')}</p>
+                        </div>
+                    `;
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    btn.textContent = 'Verify →';
+                });
+        }
+
+        // Auto-verify from URL params
+        document.addEventListener('DOMContentLoaded', () => {
+            const params = new URLSearchParams(window.location.search);
+            const ncn = params.get('ncn');
+            if (ncn && ncn.trim().length > 3) {
+                setTimeout(() => startVerification(ncn.trim()), 600);
+            }
+
+            document.getElementById('portal-verify-btn').addEventListener('click', () => startVerification());
+            document.getElementById('portal-input').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') startVerification();
+            });
+        });
     </script>
 </body>
 </html>

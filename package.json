@@ -8,7 +8,8 @@
   },
   "dependencies": {
     "@neondatabase/serverless": "^0.9.3",
-    "ethers": "^6.12.1"
+    "ethers": "^6.12.1",
+    "papaparse": "^5.4.1"
   },
   "devDependencies": {
     "serve": "^14.2.3"

@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>About | ACERVIS Protocol</title>
+    <meta name="description" content="About the ACERVIS Protocol — Pan-Nigerian Blockchain Credential Verification Infrastructure">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="assets/css/void.css">
+    <style>
+        .about-container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 140px 20px 80px;
+        }
+        .about-section { margin-bottom: 60px; }
+        .about-text {
+            font-size: 1.05rem;
+            line-height: 1.8;
+            color: var(--text-mid);
+            margin-bottom: 20px;
+            font-weight: 300;
+        }
+        .about-h2 {
+            font-family: 'Cormorant Garamond', serif;
+            font-size: 2.2rem;
+            margin-bottom: 24px;
+            color: var(--gold);
+            font-weight: 400;
+        }
+        .about-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin-top: 32px;
+        }
+        .about-card {
+            background: var(--glass);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 28px;
+            transition: border-color 0.3s;
+        }
+        .about-card:hover { border-color: var(--border-active); }
+        .about-card-title {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.6rem;
+            letter-spacing: 0.2em;
+            color: var(--gold);
+            margin-bottom: 12px;
+        }
+        .about-card-text {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            line-height: 1.7;
+            font-weight: 300;
+        }
+        @media (max-width: 640px) {
+            .about-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div id="cursor-dot"></div>
+    <div id="cursor-ring"></div>
+
+    <header id="nav">
+        <div class="nav-inner">
+            <a href="index.html" class="nav-logo">ACERVIS</a>
+            <div class="nav-links">
+                <a href="index.html" class="nav-link">Home</a>
+                <a href="protocol.html" class="nav-link">Protocol</a>
+                <a href="portal.html" class="nav-link">Verify</a>
+                <button onclick="toggleTheme()" class="nav-link" style="font-size: 1.1rem; cursor: none; background: none; border: none; padding: 0;">🌓</button>
+            </div>
+            <a href="portal.html" class="nav-cta">Verify Credential</a>
+        </div>
+    </header>
+
+    <main class="about-container">
+        <article>
+            <div class="eyebrow reveal">About the Protocol</div>
+            <h1 class="section-title reveal delay-100" style="margin-bottom: 48px;">The <em>ACERVIS</em> Initiative</h1>
+
+            <section class="about-section reveal">
+                <p class="about-text">
+                    ACERVIS is a Pan-Nigerian blockchain-based academic credential verification protocol. It was conceived to solve the endemic problem of certificate forgery, bureaucratic verification delays, and the lack of a unified national infrastructure for academic trust.
+                </p>
+                <p class="about-text">
+                    By anchoring cryptographic hashes of credentials to the Polygon Amoy blockchain, the protocol provides mathematical certainty of authenticity — forgery becomes computationally impossible, verification becomes instantaneous, and the need for centralized trust is eliminated.
+                </p>
+            </section>
+
+            <section class="about-section reveal delay-100">
+                <h2 class="about-h2">Architecture</h2>
+                <p class="about-text">
+                    The protocol operates on five layers: a user-facing frontend (Public Portal & Admin Center), a Vercel Edge serverless API layer, a cryptographic synthesis engine using HMAC-SHA256, a Neon Postgres database for metadata storage, and the Polygon L2 blockchain as the immutable anchor of truth.
+                </p>
+                <div class="about-grid">
+                    <div class="about-card">
+                        <div class="about-card-title">// Hybrid Security</div>
+                        <div class="about-card-text">Metadata lives in the database; proof lives on the blockchain. Neither alone is sufficient to forge a credential.</div>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-card-title">// Separation of Powers</div>
+                        <div class="about-card-text">Super Admins govern institutions; institutions issue credentials. No single entity controls the full pipeline.</div>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-card-title">// Future-Proof</div>
+                        <div class="about-card-text">Multi-hash architecture supports migration to SHA-3, BLAKE3, or post-quantum algorithms.</div>
+                    </div>
+                    <div class="about-card">
+                        <div class="about-card-title">// National Scale</div>
+                        <div class="about-card-text">Built on serverless infrastructure designed to handle Nigeria's 2M+ annual graduates.</div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="about-section reveal delay-200">
+                <h2 class="about-h2">Author</h2>
+                <p class="about-text">
+                    <strong style="color:var(--text-pure);">Agbontien Praise Ogochukwu</strong><br>
+                    Founder & Protocol Architect<br>
+                    <span style="color:var(--text-faint);font-size:0.9rem;">Built with the vision of restoring trust in Nigerian academic credentials through cryptographic integrity.</span>
+                </p>
+            </section>
+        </article>
+    </main>
+
+    <footer id="footer">
+        <div class="container">
+            <div class="footer-layout">
+                <div class="footer-brand">
+                    <span class="footer-logo">ACERVIS</span>
+                    <p class="footer-tagline">National Academic Credential Verification Protocol.</p>
+                    <div class="footer-metadata">
+                        <div class="footer-meta-item"><span>NETWORK:</span> Polygon Amoy</div>
+                        <div class="footer-meta-item"><span>VERSION:</span> v3.0.0</div>
+                    </div>
+                </div>
+                <div class="footer-bottom" style="border-top: none; padding-top: 0;">
+                    <div class="footer-copy">© 2026 ACERVIS PROTOCOL · Pan-Nigerian Infrastructure</div>
+                    <div class="footer-legal">
+                        <a href="protocol.html">Protocol</a>
+                        <a href="portal.html">Verify</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="assets/js/core.js"></script>
+</body>
+</html>

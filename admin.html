@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/void.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
         .admin-grid {
             display: grid;
@@ -77,7 +78,39 @@
             padding: 16px;
             border-top: 1px solid var(--border-faint);
             color: var(--text-mid);
+            font-size: 0.75rem;
         }
+        .batch-actions {
+            display: flex;
+            gap: 12px;
+            margin-top: 16px;
+            align-items: center;
+        }
+        .file-info {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.7rem;
+            color: var(--text-muted);
+            margin-top: 12px;
+        }
+        .results-panel {
+            margin-top: 40px;
+            background: var(--abyss-raised);
+            border: 1px solid var(--border-subtle);
+            border-radius: 16px;
+            padding: 32px;
+            display: none;
+        }
+        .results-panel.visible { display: block; }
+        .results-panel.success { border-color: rgba(46,204,140,0.3); }
+        .results-panel.error { border-color: rgba(229,57,53,0.3); }
+        .response-msg {
+            font-size: 0.75rem;
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 8px;
+        }
+        .response-msg.success { background: rgba(46,204,140,0.1); color: var(--success); border: 1px solid rgba(46,204,140,0.2); }
+        .response-msg.error { background: rgba(229,57,53,0.1); color: var(--revoked); border: 1px solid rgba(229,57,53,0.2); }
     </style>
 </head>
 <body class="bg-black text-white">
@@ -94,8 +127,9 @@
                 <a href="#" class="nav-link">Institution Settings</a>
             </nav>
             <div style="margin-top: auto;">
-                <div class="footer-meta-item"><span>WALLET:</span> 0x7E4...91A</div>
-                <div class="footer-meta-item"><span>QUOTA:</span> 482 / 10,000</div>
+                <div class="footer-meta-item"><span>WALLET:</span> <span id="wallet-display">—</span></div>
+                <div class="footer-meta-item"><span>QUOTA:</span> <span id="quota-display">—</span></div>
+                <div class="footer-meta-item"><span>TOKEN:</span> <span id="token-display" style="font-size:0.5rem;">—</span></div>
                 <a href="index.html" class="btn btn-ghost" style="margin-top: 20px; width: 100%;">Logout</a>
             </div>
         </aside>
@@ -103,37 +137,50 @@
         <main class="main-content">
             <div class="reveal">
                 <div class="eyebrow">Institutional Terminal</div>
-                <h1 class="section-title">Welcome, <em>Admiralty University</em></h1>
+                <h1 class="section-title">Welcome, <em id="inst-name-display">Institution</em></h1>
                 <p class="section-body">Manage your academic ledger and issue tamper-proof credentials.</p>
             </div>
 
             <div class="stat-card-row reveal delay-100" style="margin-top: 40px;">
                 <div class="admin-card">
                     <span class="stat-label">Total Issued</span>
-                    <span class="stat-num" style="font-size: 2.5rem;">482</span>
+                    <span class="stat-num" style="font-size: 2.5rem;" id="stat-issued">0</span>
                 </div>
                 <div class="admin-card">
-                    <span class="stat-label">Active Verifications</span>
-                    <span class="stat-num" style="font-size: 2.5rem;">1.2k</span>
+                    <span class="stat-label">Issuance Quota</span>
+                    <span class="stat-num" style="font-size: 2.5rem; color: var(--gold);" id="stat-quota">0</span>
                 </div>
                 <div class="admin-card">
-                    <span class="stat-label">Gas Balance (Amoy)</span>
-                    <span class="stat-num" style="font-size: 2.5rem; color: var(--success);">4.2 MATIC</span>
+                    <span class="stat-label">Remaining</span>
+                    <span class="stat-num" style="font-size: 2.5rem;" id="stat-remaining">0</span>
                 </div>
             </div>
 
             <div class="reveal delay-200">
                 <h2 class="section-title" style="font-size: 1.5rem; margin-bottom: 20px;">Batch Issuance</h2>
+                <p class="section-body" style="margin-bottom: 20px;">Upload a CSV with columns: <code>student_name, grad_year, course_name, degree_type, matric_number</code></p>
                 <div class="drop-zone" id="drop-zone">
                     <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--gold)" stroke-width="1.5" style="margin-bottom: 16px;">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                     </svg>
-                    <p class="mono" style="font-size: 0.9rem;">Drop CSV or Excel file here</p>
-                    <p class="text-faint" style="font-size: 0.7rem; margin-top: 8px;">Max 10,000 rows per batch. Quota will be deducted upon anchoring.</p>
+                    <p class="mono" style="font-size: 0.9rem;">Drop CSV file here or click to browse</p>
+                    <p class="text-faint" style="font-size: 0.7rem; margin-top: 8px;" id="drop-status">Max 10,000 rows per batch. Quota will be deducted upon anchoring.</p>
+                    <input type="file" id="file-input" accept=".csv" style="display: none;">
+                </div>
+                <div id="file-info" class="file-info" style="display: none;"></div>
+                <div class="batch-actions" id="batch-actions" style="display: none;">
+                    <button class="btn btn-primary" id="issue-btn">Issue & Anchor Credentials</button>
+                    <button class="btn btn-ghost" id="clear-btn">Clear Batch</button>
                 </div>
             </div>
 
+            <div id="results-panel" class="results-panel">
+                <h3 id="results-title" class="section-title" style="font-size: 1.2rem; margin-bottom: 16px;">Results</h3>
+                <div id="results-content"></div>
+            </div>
+
             <div class="table-container reveal delay-300">
+                <h2 class="section-title" style="font-size: 1.2rem; padding: 24px 24px 0;">Recent Credentials</h2>
                 <table>
                     <thead>
                         <tr>
@@ -141,18 +188,12 @@
                             <th>NCN</th>
                             <th>Degree</th>
                             <th>Status</th>
-                            <th>Actions</th>
                         </tr>
                     </thead>
-                    <tbody>
+                    <tbody id="credentials-table-body">
                         <tr>
-                            <td>Agbontien Praise O.</td>
-                            <td class="mono">ADUN-2025-0001-SE</td>
-                            <td>B.Sc Soft. Eng.</td>
-                            <td><span class="status-badge badge-verified">Active</span></td>
-                            <td><button class="text-gold mono" style="font-size: 0.6rem;">REVOKE</button></td>
+                            <td colspan="4" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No credentials issued yet.</td>
                         </tr>
-                        <!-- More rows... -->
                     </tbody>
                 </table>
             </div>
@@ -161,17 +202,205 @@
 
     <script src="assets/js/core.js"></script>
     <script>
-        const dropZone = document.getElementById('drop-zone');
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('dragover');
-        });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('dragover');
-            alert('File received. Starting deterministic synthesis for 482 students...');
-        });
+        (function() {
+            // Validate session token
+            const adminToken = sessionStorage.getItem('acervis_admin_token');
+            if (!adminToken || adminToken.length !== 12) {
+                window.location.href = 'index.html';
+                return;
+            }
+            document.getElementById('token-display').textContent = adminToken;
+
+            // Show stored institution info if available
+            const instInfo = JSON.parse(sessionStorage.getItem('acervis_inst_info') || '{}');
+            if (instInfo.name) {
+                document.getElementById('inst-name-display').textContent = instInfo.name;
+                document.getElementById('stat-issued').textContent = instInfo.issued_count || '0';
+                document.getElementById('stat-quota').textContent = instInfo.issuance_quota || '0';
+                document.getElementById('wallet-display').textContent = instInfo.wallet || '—';
+                const remaining = (instInfo.issuance_quota || 0) - (instInfo.issued_count || 0);
+                document.getElementById('stat-remaining').textContent = remaining;
+            }
+
+            // CSV Drop Zone
+            const dropZone = document.getElementById('drop-zone');
+            const fileInput = document.getElementById('file-input');
+            const fileInfo = document.getElementById('file-info');
+            const batchActions = document.getElementById('batch-actions');
+            let parsedData = null;
+
+            dropZone.addEventListener('click', () => fileInput.click());
+
+            dropZone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropZone.classList.add('dragover');
+            });
+
+            dropZone.addEventListener('dragleave', () => {
+                dropZone.classList.remove('dragover');
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropZone.classList.remove('dragover');
+                const files = e.dataTransfer.files;
+                if (files.length > 0) handleFile(files[0]);
+            });
+
+            fileInput.addEventListener('change', (e) => {
+                if (e.target.files.length > 0) handleFile(e.target.files[0]);
+            });
+
+            function handleFile(file) {
+                if (!file.name.endsWith('.csv')) {
+                    alert('Please upload a CSV file.');
+                    return;
+                }
+
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const csvData = e.target.result;
+                    PapaParse.parse(csvData, {
+                        header: true,
+                        skipEmptyLines: true,
+                        complete: function(results) {
+                            if (results.data.length === 0) {
+                                alert('CSV file is empty.');
+                                return;
+                            }
+
+                            // Validate required columns
+                            const required = ['student_name', 'grad_year', 'course_name', 'degree_type', 'matric_number'];
+                            const headers = Object.keys(results.data[0]);
+                            const missing = required.filter(h => !headers.includes(h));
+
+                            if (missing.length > 0) {
+                                alert('Missing required columns: ' + missing.join(', ') + '\n\nRequired: ' + required.join(', '));
+                                return;
+                            }
+
+                            parsedData = results.data;
+                            fileInfo.style.display = 'block';
+                            fileInfo.textContent = '📄 ' + file.name + ' — ' + parsedData.length + ' students loaded';
+                            document.getElementById('drop-status').textContent = parsedData.length + ' credentials ready for issuance';
+                            batchActions.style.display = 'flex';
+                        },
+                        error: function(err) {
+                            alert('Error parsing CSV: ' + err.message);
+                        }
+                    });
+                };
+                reader.readAsText(file);
+            }
+
+            document.getElementById('clear-btn').addEventListener('click', () => {
+                parsedData = null;
+                fileInfo.style.display = 'none';
+                fileInfo.textContent = '';
+                batchActions.style.display = 'none';
+                document.getElementById('drop-status').textContent = 'Max 10,000 rows per batch.';
+                fileInput.value = '';
+            });
+
+            document.getElementById('issue-btn').addEventListener('click', async () => {
+                if (!parsedData || parsedData.length === 0) return;
+
+                const btn = document.getElementById('issue-btn');
+                const panel = document.getElementById('results-panel');
+                const content = document.getElementById('results-content');
+                const title = document.getElementById('results-title');
+
+                btn.disabled = true;
+                btn.textContent = '⟳ Synthesizing & Anchoring...';
+                panel.classList.remove('visible', 'success', 'error');
+
+                const batch = parsedData.map(row => ({
+                    name: row.student_name,
+                    year: parseInt(row.grad_year),
+                    course: row.course_name,
+                    type: row.degree_type,
+                    matric: row.matric_number
+                }));
+
+                try {
+                    const res = await fetch('/api/v1/issue', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token: adminToken, batch })
+                    });
+
+                    const data = await res.json();
+
+                    panel.classList.add('visible');
+
+                    if (res.ok && data.success) {
+                        panel.className = 'results-panel visible success';
+                        title.textContent = '✓ Batch Issuance Complete';
+
+                        let resultsHtml = `<p style="margin-bottom:16px;color:var(--success);">
+                            Successfully issued ${data.results.length} credentials.
+                        </p>`;
+
+                        // Show first 10 results as preview
+                        const preview = data.results.slice(0, 10);
+                        resultsHtml += '<table><thead><tr><th>Name</th><th>NCN</th><th>Hash (first 12)</th></tr></thead><tbody>';
+                        preview.forEach(r => {
+                            resultsHtml += `<tr>
+                                <td>${escapeHtml(r.name)}</td>
+                                <td class="mono" style="font-size:0.65rem;">${escapeHtml(r.ncn)}</td>
+                                <td class="mono" style="font-size:0.55rem;color:var(--text-faint);">${r.hash.slice(0, 12)}...</td>
+                            </tr>`;
+                        });
+                        if (data.results.length > 10) {
+                            resultsHtml += `<tr><td colspan="3" style="text-align:center;color:var(--text-muted);font-size:0.7rem;">
+                                ... and ${data.results.length - 10} more
+                            </td></tr>`;
+                        }
+                        resultsHtml += '</tbody></table>';
+
+                        // Generate downloadable CSV
+                        const csvRows = [['student_name', 'ncn', 'blockchain_hash']];
+                        data.results.forEach(r => csvRows.push([r.name, r.ncn, r.hash]));
+                        const csvContent = PapaParse.unparse(csvRows);
+                        const blob = new Blob([csvContent], { type: 'text/csv' });
+                        const url = URL.createObjectURL(blob);
+
+                        resultsHtml += `<div style="margin-top:20px;">
+                            <a href="${url}" download="acervis-issued-${Date.now()}.csv" class="btn btn-primary">
+                                ↓ Download CSV with NCNs
+                            </a>
+                        </div>`;
+
+                        content.innerHTML = resultsHtml;
+
+                        // Clear the batch
+                        parsedData = null;
+                        fileInfo.style.display = 'none';
+                        batchActions.style.display = 'none';
+                        document.getElementById('drop-status').textContent = 'Max 10,000 rows per batch.';
+                        fileInput.value = '';
+                    } else {
+                        panel.className = 'results-panel visible error';
+                        title.textContent = '✗ Issuance Failed';
+                        content.innerHTML = `<p style="color:var(--revoked);">${escapeHtml(data.error || 'Unknown error')}</p>`;
+                    }
+                } catch (err) {
+                    panel.classList.add('visible');
+                    panel.className = 'results-panel visible error';
+                    title.textContent = '✗ Network Error';
+                    content.innerHTML = `<p style="color:var(--revoked);">${escapeHtml(err.message)}</p>`;
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = 'Issue & Anchor Credentials';
+                }
+            });
+
+            function escapeHtml(str) {
+                const div = document.createElement('div');
+                div.textContent = str;
+                return div.innerHTML;
+            }
+        })();
     </script>
 </body>
 </html>

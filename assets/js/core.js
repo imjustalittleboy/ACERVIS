@@ -385,12 +385,11 @@ document.addEventListener('DOMContentLoaded', () => {
             ],
             status: () => [
                 { text: '● Polygon Amoy RPC .................. ONLINE',  type: 'success' },
-                { text: '● Supabase Edge Connection .......... ACTIVE',  type: 'success' },
-                { text: '● IPFS Pinning Service .............. SYNCED',  type: 'success' },
-                { text: '● Redis Upstash Queue ............... IDLE',    type: 'success' },
-                { text: '● IssuanceRegistry.sol .............. 0x7E4f2..c91A' },
-                { text: '● RevocationRegistry.sol ............ 0xA1c30..3D8B' },
-                { text: '● Protocol Version .................. v2.1.0'  },
+                { text: '● Neon DB Connection ................. ACTIVE',  type: 'success' },
+                { text: '● Vercel Blob Storage ............... SYNCED',  type: 'success' },
+                { text: '● Vercel Edge Functions ............. READY',    type: 'success' },
+                { text: '● AcervisRegistry.sol ............... 0x7E4f2..c91A' },
+                { text: '● Protocol Version .................. v3.0.0'  },
             ],
             clear: () => { tOutput.innerHTML = ''; return []; },
             theme: (args) => {
@@ -528,11 +527,11 @@ document.addEventListener('DOMContentLoaded', () => {
 
     /* --- PLACEHOLDER ROTATION --- */
     const placeholders = [
-        'ADUN-2026-0001-SE',
-        'UNILAG-2024-4312-MED',
-        'OAU-2025-0872-LAW',
-        'UI-2023-1193-ENG',
-        'UNN-2026-2047-ECON',
+        'ADUN-2025-A3F8D9C2',
+        'UNILAG-2024-B71E4312',
+        'OAU-2025-09D2F87E',
+        'UI-2023-3C1A9B8F',
+        'UNN-2026-7E4F21D0',
     ];
     let phIdx = 0;
     if (heroInput) {
@@ -542,8 +541,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }, 3000);
     }
 
-    console.log('%cACERVIS v2.1.0', 'font-family:monospace;font-size:18px;color:#D4AF37;font-weight:bold;');
+    console.log('%cACERVIS v3.0.0', 'font-family:monospace;font-size:18px;color:#D4AF37;font-weight:bold;');
     console.log('%cNational Academic Credential Verification Protocol', 'font-family:monospace;font-size:11px;color:#8A96AE;');
-    console.log('%cPowered by Polygon L2 · Supabase · Vercel Edge', 'font-family:monospace;font-size:10px;color:#546E8A;');
+    console.log('%cPowered by Polygon L2 · Neon DB · Vercel Edge', 'font-family:monospace;font-size:10px;color:#546E8A;');
 
 });
