@@ -16,13 +16,13 @@ Jane Smith,ADU/2020/002,Mathematics,BSc,2024`;
 
 const COMBINED_TEMPLATE = `type,student_name,matric_number,course_name,degree_type,graduation_year,cgpa,course_code,course_title,credit_units,score,grade,semester,session
 STUDENT,John Doe,ADU/2020/001,Computer Science,BSc,2024,4.82,,,,,,,
-SUBJECT,,,,,,,,CSC101,Introduction to Programming,3,78,A,First,2020/2021
-SUBJECT,,,,,,,,CSC102,Data Structures,3,82,A,First,2020/2021
-SUBJECT,,,,,,,,CSC201,Database Systems,3,71,B,Second,2020/2021
+SUBJECT,,,,,,CSC101,Introduction to Programming,3,78,A,First,2020/2021
+SUBJECT,,,,,,CSC102,Data Structures,3,82,A,First,2020/2021
+SUBJECT,,,,,,CSC201,Database Systems,3,71,B,Second,2020/2021
 STUDENT,Jane Smith,ADU/2020/002,Mathematics,BSc,2024,4.91,,,,,,,
-SUBJECT,,,,,,,,MTH201,Abstract Algebra,3,95,A,First,2021/2022
-SUBJECT,,,,,,,,MTH202,Real Analysis,3,88,A,First,2021/2022
-SUBJECT,,,,,,,,MTH301,Complex Analysis,3,76,A,Second,2021/2022`;
+SUBJECT,,,,,,MTH201,Abstract Algebra,3,95,A,First,2021/2022
+SUBJECT,,,,,,MTH202,Real Analysis,3,88,A,First,2021/2022
+SUBJECT,,,,,,MTH301,Complex Analysis,3,76,A,Second,2021/2022`;
 
 const VERIFY_TEMPLATE = `ncn
 ADUN-2025-A3F8D9C2
