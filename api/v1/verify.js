@@ -186,7 +186,7 @@ async function verifyTranscript(sql, pepper, ncn) {
     const subHash = createHash('sha256')
         .update(subjects.map(s => `${s.course_code}|${s.credit_units}|${s.score}|${s.grade}|${s.semester}|${s.session}`).join('||'))
         .digest('hex');
-    const payload = `${record.student_name}|${record.graduation_year}|${record.course_name}|${record.degree_type}|${record.matric_number}|${record.cgpa}|${record.total_credits}|${subHash}`.toLowerCase();
+    const payload = `${record.student_name}|${record.graduation_year}|${record.course_name}|${record.degree_type}|${record.matric_number}|${record.cgpa ?? 0}|${record.total_credits}|${subHash}`.toLowerCase();
     const localHash = createHmac('sha256', pepper).update(payload + record.salt).digest('hex');
     const integrityOk = localHash === record.blockchain_hash;
     const subjectsMatch = subHash === record.subjects_hash;
