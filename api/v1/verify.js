@@ -199,7 +199,7 @@ async function verifyTranscript(sql, pepper, ncn) {
         return {
             state: 'TAMPERED',
             record_type: 'transcript',
-            metadata: record,
+            metadata: { ...record, _debug: { payload, stored_hash: record.blockchain_hash?.slice(0,16), computed_hash: localHash?.slice(0,16), stored_subjects: record.subjects_hash?.slice(0,16), computed_subjects: subHash?.slice(0,16), cgpa: record.cgpa, credits: record.total_credits, salt: record.salt?.slice(0,8) } },
             subjects,
             blockchain: null,
             integrity_check: 'FAILED',
