@@ -338,7 +338,7 @@
 
         window.toggleInstStatus = async (id, newStatus) => {
             try {
-                await fetch('/api/v1/institution?id=' + id + '&action=status', {
+                await fetch('/api/v1/institutions?id=' + id + '&action=status', {
                     method: 'PATCH', headers: { 'Content-Type': 'application/json', ...SA_HEADERS },
                     body: JSON.stringify({ is_active: newStatus })
                 });
@@ -350,7 +350,7 @@
             const quota = prompt('Enter new issuance quota:');
             if (!quota || isNaN(quota) || parseInt(quota) < 0) return;
             try {
-                await fetch('/api/v1/institution?id=' + id + '&action=quota', {
+                await fetch('/api/v1/institutions?id=' + id + '&action=quota', {
                     method: 'PATCH', headers: { 'Content-Type': 'application/json', ...SA_HEADERS },
                     body: JSON.stringify({ quota: parseInt(quota) })
                 });

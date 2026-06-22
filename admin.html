@@ -394,7 +394,7 @@
             panel.classList.remove('visible', 'success', 'error');
 
             try {
-                const res = await fetch('/api/v1/batch-issue', {
+                const res = await fetch('/api/v1/issue', {
                     method: 'POST', headers: { ...API_HEADERS, 'Content-Type': 'text/plain' },
                     body: parsedCSV
                 });
@@ -528,7 +528,7 @@
 
         window.updateCredStatus = async (ncn, status) => {
             try {
-                await apiFetch('/api/v1/credential?ncn=' + encodeURIComponent(ncn), {
+                await apiFetch('/api/v1/credentials?ncn=' + encodeURIComponent(ncn), {
                     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status, reason: 'Admin action via terminal' })
                 });
@@ -581,7 +581,7 @@
 
         window.updateTransStatus = async (ncn, status) => {
             try {
-                await apiFetch('/api/v1/transcript?ncn=' + encodeURIComponent(ncn), {
+                await apiFetch('/api/v1/transcripts?ncn=' + encodeURIComponent(ncn), {
                     method: 'PATCH', headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ status, reason: 'Admin action via terminal' })
                 });
@@ -591,7 +591,7 @@
 
         window.viewSubjects = async (ncn) => {
             try {
-                const data = await apiFetch('/api/v1/transcript?ncn=' + encodeURIComponent(ncn));
+                const data = await apiFetch('/api/v1/transcripts?ncn=' + encodeURIComponent(ncn));
                 const modal = document.getElementById('subject-modal');
                 document.getElementById('modal-title').textContent = 'Transcript: ' + ncn;
                 document.getElementById('modal-student-info').textContent = data.student_name + ' · ' + data.course_name + ' · CGPA: ' + (data.cgpa || '—') + ' · ' + (data.subjects?.length || 0) + ' subjects';

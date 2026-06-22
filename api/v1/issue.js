@@ -1,124 +1,204 @@
-// ACERVIS API: Batch Issuance & Hashing (v3.1.0)
-// Accepts: JSON { token, batch } or raw CSV text (Content-Type: text/csv)
-// CSV columns: student_name,matric_number,course_name,degree_type,graduation_year
-import { createHmac, randomBytes } from 'crypto';
+// ACERVIS: Batch Issuance (Consolidated v3.1.0)
+// Handles credential-only batch AND combined CSV (credential + transcript with subjects).
+// Accepts: JSON { batch } with x-institution-token header, or raw CSV body.
+// Auto-detects format: if CSV has 'type' column with STUDENT/SUBJECT markers → combined.
+// Otherwise → credential-only.
+import { createHmac, createHash, randomBytes } from 'crypto';
 import Papa from 'papaparse';
-import { neon } from '@neondatabase/serverless';
+import { handlePreflight, error } from './_lib/cors.js';
+import { getDb } from './_lib/db.js';
+import { authenticateInstitution } from './_lib/auth.js';
+import { logAudit } from './_lib/audit.js';
+
+// ─── Helpers ──────────────────────────────────────────────
+
+function hashPayload(pepper, payload, salt) {
+  return createHmac('sha256', pepper).update(payload + salt).digest('hex');
+}
+
+function salt() { return randomBytes(16).toString('hex'); }
+
+function randHex(n = 4) { return randomBytes(n).toString('hex').toUpperCase(); }
+
+function credNcn(sc, y) { return `${sc}-${y}-${randHex()}`; }
+
+function transNcn(sc, y) { return `${sc}-T-${y}-${randHex()}`; }
+
+function credPayload(n, y, c, d, m) { return `${n}|${y}|${c}|${d}|${m}`.toLowerCase(); }
+
+function transPayload(n, y, c, d, m, g, cr, sh) {
+  return `${n}|${y}|${c}|${d}|${m}|${g}|${cr}|${sh}`.toLowerCase();
+}
+
+function subjectHash(subjects) {
+  const s = subjects.map(x => `${x.code}|${x.credits}|${x.score}|${x.grade}|${x.sem}|${x.ses}`).join('||');
+  return createHash('sha256').update(s).digest('hex');
+}
+
+async function anchorHash(hash) {
+  if (!process.env.CONTRACT_ADDRESS || !process.env.ALCHEMY_RPC_URL) return null;
+  try {
+    const { ethers } = await import('ethers');
+    const p = new ethers.JsonRpcProvider(process.env.ALCHEMY_RPC_URL);
+    const w = new ethers.Wallet(process.env.INSTITUTION_PRIVATE_KEY || '', p);
+    const c = new ethers.Contract(process.env.CONTRACT_ADDRESS,
+      ['function anchorCredential(bytes32) external'], w);
+    const tx = await c.anchorCredential('0x' + hash);
+    const r = await tx.wait();
+    return r.hash;
+  } catch (e) { console.error('ANCHOR_WARN:', e.message); return null; }
+}
+
+// ─── Credential-Only ──────────────────────────────────────
+
+async function processCredentials(sql, inst, rows, pepper) {
+  const results = [], errors = [];
+  for (const r of rows) {
+    try {
+      const n = (r.student_name || r.name || '').trim();
+      const m = (r.matric_number || r.matric || '').trim();
+      const y = parseInt(r.graduation_year || r.grad_year || r.year, 10);
+      const c = (r.course_name || r.course || '').trim();
+      const d = (r.degree_type || r.type || '').trim();
+      if (!n || !m || !y || !c || !d) { errors.push({ row: n || '?', error: 'Missing fields' }); continue; }
+
+      const slt = salt();
+      const h = hashPayload(pepper, credPayload(n, y, c, d, m), slt);
+      const ncn = credNcn(inst.short_code, y);
+      await sql`INSERT INTO credentials (institution_id,ncn,student_name,matric_number,grad_year,course_name,degree_type,salt,blockchain_hash)
+        VALUES (${inst.id},${ncn},${n},${m},${y},${c},${d},${slt},${h})`;
+      results.push({ ncn, hash: h, student_name: n, matric_number: m, type: 'credential' });
+    } catch (e) { errors.push({ row: r.student_name || '?', error: e.message }); }
+  }
+  let txHashes = [];
+  if (results.length && process.env.CONTRACT_ADDRESS) {
+    for (const r of results) {
+      const tx = await anchorHash(r.hash);
+      if (tx) { txHashes.push({ ncn: r.ncn, txHash: tx }); await sql`UPDATE credentials SET tx_hash=${tx},anchored_at=NOW() WHERE ncn=${r.ncn}`; }
+    }
+  }
+  if (results.length) await sql`UPDATE institutions SET issued_count=issued_count+${results.length},last_activity_at=NOW() WHERE id=${inst.id}`;
+  return { results, errors, txHashes };
+}
+
+// ─── Combined (Credential + Transcript) ───────────────────
+
+async function processCombined(sql, inst, rows, pepper) {
+  const results = [], errors = [];
+  let students = [], current = null;
+  for (const r of rows) {
+    const t = ((r.type || '')+'').trim().toUpperCase();
+    if (t === 'STUDENT') { current = { name:(r.student_name||'').trim(), matric:(r.matric_number||'').trim(), course:(r.course_name||'').trim(), degree:(r.degree_type||'').trim(), year:parseInt(r.graduation_year||r.grad_year,10), cgpa:parseFloat(r.cgpa)||null, subjects:[] }; students.push(current); }
+    else if (t === 'SUBJECT' && current) { current.subjects.push({ code:(r.course_code||'').trim(), title:(r.course_title||'').trim(), credits:parseInt(r.credit_units,10)||0, score:parseInt(r.score,10)||0, grade:(r.grade||'').trim(), sem:(r.semester||'').trim(), ses:(r.session||'').trim() }); }
+  }
+
+  for (const s of students) {
+    try {
+      if (!s.name || !s.matric || !s.year || !s.course || !s.degree) { errors.push({ student: s.name||'?', error:'Missing fields' }); continue; }
+
+      // Credential
+      const cs = salt();
+      const ch = hashPayload(pepper, credPayload(s.name, s.year, s.course, s.degree, s.matric), cs);
+      const cn = credNcn(inst.short_code, s.year);
+      const [cred] = await sql`INSERT INTO credentials (institution_id,ncn,student_name,matric_number,grad_year,course_name,degree_type,salt,blockchain_hash)
+        VALUES (${inst.id},${cn},${s.name},${s.matric},${s.year},${s.course},${s.degree},${cs},${ch}) RETURNING id`;
+
+      // Transcript
+      const ts = salt();
+      const sh = subjectHash(s.subjects);
+      const tc = s.subjects.reduce((a, x) => a + (x.credits||0), 0);
+      const tp = transPayload(s.name, s.year, s.course, s.degree, s.matric, s.cgpa||0, tc, sh);
+      const th = hashPayload(pepper, tp, ts);
+      const tn = transNcn(inst.short_code, s.year);
+      const [tran] = await sql`INSERT INTO transcripts (institution_id,ncn,linked_credential_id,student_name,matric_number,course_name,degree_type,graduation_year,cgpa,total_credits,salt,blockchain_hash,subjects_hash)
+        VALUES (${inst.id},${tn},${cred.id},${s.name},${s.matric},${s.course},${s.degree},${s.year},${s.cgpa},${tc},${ts},${th},${sh}) RETURNING id`;
+
+      // Subjects
+      for (const sub of s.subjects) {
+        await sql`INSERT INTO transcript_subjects (transcript_id,course_code,course_title,credit_units,score,grade,semester,session)
+          VALUES (${tran.id},${sub.code},${sub.title},${sub.credits},${sub.score},${sub.grade},${sub.sem},${sub.ses})`;
+      }
+
+      results.push({ student_name:s.name, matric_number:s.matric, credential:{ ncn:cn, hash:ch }, transcript:{ ncn:tn, hash:th, subjects_count:s.subjects.length } });
+    } catch (e) { errors.push({ student: s.name||'?', error: e.message }); }
+  }
+
+  let txHashes = [];
+  if (results.length && process.env.CONTRACT_ADDRESS) {
+    for (const r of results) {
+      const ct = await anchorHash(r.credential.hash);
+      if (ct) { txHashes.push({ ncn:r.credential.ncn, type:'credential', txHash:ct }); await sql`UPDATE credentials SET tx_hash=${ct},anchored_at=NOW() WHERE ncn=${r.credential.ncn}`; }
+      const tt = await anchorHash(r.transcript.hash);
+      if (tt) { txHashes.push({ ncn:r.transcript.ncn, type:'transcript', txHash:tt }); await sql`UPDATE transcripts SET tx_hash=${tt},anchored_at=NOW() WHERE ncn=${r.transcript.ncn}`; }
+    }
+  }
+  if (results.length) await sql`UPDATE institutions SET issued_count=issued_count+${results.length},last_activity_at=NOW() WHERE id=${inst.id}`;
+  return { results, errors, txHashes };
+}
+
+// ─── Main ─────────────────────────────────────────────────
 
 export default async function handler(req, res) {
-    // CORS
-    if (req.method === 'OPTIONS') {
-        res.setHeader('Access-Control-Allow-Origin', '*');
-        res.setHeader('Access-Control-Allow-Methods', 'POST, OPTIONS');
-        res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-institution-token, x-super-admin-secret');
-        return res.status(200).end();
+  handlePreflight(req, res, 'POST, OPTIONS');
+  if (req.method !== 'POST') return error(res, 'ACV_405', 'Method not allowed', 405);
+
+  const inst = await authenticateInstitution(req);
+  if (!inst) return error(res, 'ACV_401', 'Invalid institutional token', 401);
+  if (!inst.is_active) return error(res, 'ACV_403', 'Institution deactivated', 403);
+
+  try {
+    const sql = getDb();
+    const pepper = process.env.PROTOCOL_PEPPER;
+    let csvText = '';
+
+    // Parse input
+    if (typeof req.body === 'string') csvText = req.body;
+    else if (req.body?.csv || req.body?.csvData) csvText = req.body.csv || req.body.csvData;
+    else if (req.body?.batch) {
+      // JSON batch → credential-only
+      if (inst.issued_count + req.body.batch.length > inst.issuance_quota)
+        return error(res, 'ACV_409', 'Quota exceeded', 403);
+      const result = await processCredentials(sql, inst, req.body.batch, pepper);
+      await logAudit('batch_issue', inst.id, null, { count: result.results.length, errors: result.errors.length }, req);
+      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes });
     }
 
-    if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' });
+    if (!csvText || !csvText.trim()) return error(res, 'ACV_400', 'CSV data or JSON batch required');
 
-    try {
-        const sql = neon(process.env.DATABASE_URL);
-        const pepper = process.env.PROTOCOL_PEPPER;
+    const parsed = Papa.parse(csvText.trim(), { header: true, skipEmptyLines: true, transformHeader: h => h.trim().toLowerCase() });
+    if (parsed.errors.length) return error(res, 'ACV_400', 'CSV error: ' + parsed.errors[0].message);
+    if (!parsed.data.length) return error(res, 'ACV_400', 'CSV has no data rows');
 
-        // Parse input: JSON or CSV
-        let token, batch;
+    const headers = parsed.meta.fields || [];
+    const isCombined = headers.includes('type');
+    const isCredential = headers.includes('student_name') && headers.includes('matric_number');
+    const hasSubjectCols = headers.includes('course_code');
 
-        if (typeof req.body === 'string') {
-            // Raw CSV body
-            const parsed = Papa.parse(req.body.trim(), { header: true, skipEmptyLines: true });
-            if (parsed.errors.length > 0) {
-                return res.status(400).json({ error: 'CSV parse error: ' + parsed.errors[0].message });
-            }
-            token = req.headers['x-institution-token'];
-            batch = parsed.data.map(row => ({
-                name: (row.student_name || row.name || '').trim(),
-                year: parseInt(row.graduation_year || row.grad_year || row.year, 10),
-                course: (row.course_name || row.course || '').trim(),
-                type: (row.degree_type || row.type || '').trim(),
-                matric: (row.matric_number || row.matric || '').trim()
-            }));
-        } else {
-            token = req.body?.token || req.headers['x-institution-token'];
-            batch = req.body?.batch;
-        }
-
-        if (!token || !batch) {
-            return res.status(400).json({ error: 'Institutional token and batch data required. Send JSON { token, batch } or CSV body with x-institution-token header.' });
-        }
-
-        // Authenticate
-        const [institution] = await sql`
-            SELECT id, issuance_quota, issued_count, short_code, name, is_active
-            FROM institutions WHERE token_id = ${token} AND is_active = TRUE
-        `;
-
-        if (!institution) return res.status(401).json({ error: 'Invalid institutional token' });
-        if (institution.issued_count + batch.length > institution.issuance_quota) {
-            return res.status(403).json({ error: 'Issuance quota exceeded. Remaining: ' + (institution.issuance_quota - institution.issued_count) });
-        }
-
-        // Filter invalid rows
-        const valid = batch.filter(s => s.name && s.matric && s.year && s.course && s.type);
-        if (valid.length === 0) return res.status(400).json({ error: 'No valid student records found. Required: name, matric, year, course, type' });
-
-        const results = [];
-
-        for (const student of valid) {
-            const salt = randomBytes(16).toString('hex');
-            const payload = `${student.name}|${student.year}|${student.course}|${student.type}|${student.matric}`.toLowerCase();
-            const hash = createHmac('sha256', pepper).update(payload + salt).digest('hex');
-            const ncn = `${institution.short_code}-${student.year}-${randomBytes(4).toString('hex').toUpperCase()}`;
-
-            await sql`
-                INSERT INTO credentials (institution_id, ncn, student_name, matric_number, grad_year, course_name, degree_type, salt, blockchain_hash)
-                VALUES (${institution.id}, ${ncn}, ${student.name}, ${student.matric}, ${student.year}, ${student.course}, ${student.type}, ${salt}, ${hash})
-            `;
-
-            results.push({ ncn, hash, name: student.name, matric: student.matric });
-        }
-
-        // Blockchain anchoring
-        let txHashes = [];
-        if (process.env.CONTRACT_ADDRESS && process.env.ALCHEMY_RPC_URL) {
-            const { ethers } = await import('ethers');
-            const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_RPC_URL);
-            const wallet = new ethers.Wallet(process.env.INSTITUTION_PRIVATE_KEY || '', provider);
-            const contract = new ethers.Contract(
-                process.env.CONTRACT_ADDRESS,
-                ['function anchorCredential(bytes32 _hash) external'],
-                wallet
-            );
-
-            for (const r of results) {
-                try {
-                    const tx = await contract.anchorCredential('0x' + r.hash);
-                    const receipt = await tx.wait();
-                    txHashes.push({ ncn: r.ncn, txHash: receipt.hash });
-                    await sql`UPDATE credentials SET tx_hash = ${receipt.hash}, anchored_at = NOW() WHERE ncn = ${r.ncn}`;
-                } catch (e) {
-                    console.error('ACV_CHAIN_ANCHOR_WARN:', e.message);
-                }
-            }
-        }
-
-        // Update quota
-        await sql`UPDATE institutions SET issued_count = issued_count + ${results.length}, last_activity_at = NOW() WHERE id = ${institution.id}`;
-
-        // Audit
-        await sql`
-            INSERT INTO audit_logs (action, actor_id, metadata)
-            VALUES ('batch_issue', ${institution.id}, ${JSON.stringify({ count: results.length, total: batch.length, skipped: batch.length - valid.length })})
-        `.catch(e => console.error('AUDIT_WARN:', e.message));
-
-        return res.status(200).json({
-            success: true,
-            summary: { issued: results.length, skipped: batch.length - valid.length },
-            results,
-            tx_hashes: txHashes.length > 0 ? txHashes : undefined
-        });
-
-    } catch (error) {
-        console.error('ACV_ISSUE_ERROR:', error);
-        return res.status(500).json({ error: 'Internal server error', code: 'ACV_500' });
+    // Detect format
+    if (isCombined) {
+      const studentCount = parsed.data.filter(r => ((r.type||'')+'').trim().toUpperCase() === 'STUDENT').length;
+      if (inst.issued_count + studentCount > inst.issuance_quota)
+        return error(res, 'ACV_409', 'Quota exceeded', 403);
+      const result = await processCombined(sql, inst, parsed.data, pepper);
+      await logAudit('batch_issue', inst.id, null, { csvType: 'combined', students: result.results.length, errors: result.errors.length, txCount: result.txHashes?.length }, req);
+      return res.status(200).json({ success: true, csv_type: 'combined', summary: { total_students: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
     }
+
+    if (isCredential && !hasSubjectCols) {
+      const rows = parsed.data.map(r => ({ student_name: r.student_name, matric_number: r.matric_number, course_name: r.course_name, degree_type: r.degree_type, graduation_year: r.graduation_year || r.grad_year }));
+      if (inst.issued_count + rows.length > inst.issuance_quota)
+        return error(res, 'ACV_409', 'Quota exceeded', 403);
+      const result = await processCredentials(sql, inst, rows, pepper);
+      await logAudit('batch_issue', inst.id, null, { csvType: 'credential', count: result.results.length, errors: result.errors.length }, req);
+      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
+    }
+
+    if (isCredential && hasSubjectCols && !isCombined)
+      return error(res, 'ACV_400', 'CSV has subject columns but no "type" column. Add type column with STUDENT/SUBJECT markers, or use credential-only format (no course_code column). Download template from /api/v1/csv?type=transcript');
+
+    return error(res, 'ACV_400', 'Unrecognized CSV format. See /api/v1/csv for templates');
+  } catch (err) {
+    console.error('ACV_ISSUE_ERROR:', err);
+    return error(res, 'ACV_500', 'Internal server error', 500);
+  }
 }
