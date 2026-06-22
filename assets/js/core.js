@@ -381,8 +381,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 { text: '  theme [val]  — Set theme (light/dark)' },
                 { text: '  clear        — Clear terminal' },
                 { text: '' },
-                { text: 'Or enter your 12-byte institution token for admin access.', type: 'gold' },
-                { text: '  login [token] — Institution admin (12-char token) or super admin ("agbontienpraise26")', type: 'gold' },
+                { text: '  Or enter your institution token or governance key directly.', type: 'gold' },
+                { text: '  login [token] — Institution admin (12-char token) or governance access', type: 'gold' },
             ],
             status: () => [
                 { text: '● Polygon Amoy RPC .................. ONLINE',  type: 'success' },
@@ -500,7 +500,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
             // If user typed "login" with no valid token, show help
             if (cmdBase === 'login') {
-                printLine('Usage: login [12-char institution token] or login agbontienpraise26', 'error');
+                printLine('Usage: login [12-char institution token] or login [governance key]', 'error');
                 return;
             }
 

@@ -84,11 +84,26 @@ export default async function handler(req, res) {
         // Non-blocking: institution can connect wallet later
       }
 
-      const [inst] = await sql`
-        INSERT INTO institutions (name, short_code, type, token_id, issuance_quota, admin_email, wallet_address, encrypted_private_key)
-        VALUES (${name}, ${short_code.toUpperCase()}, ${type}, ${token}, ${quota}, ${email}, ${walletAddress}, ${encryptedKey})
-        RETURNING id, token_id, name AS institution_name
-      `;
+      // Insert with or without encrypted_private_key (in case column hasn't been added yet)
+      let inst;
+      try {
+        [inst] = await sql`
+          INSERT INTO institutions (name, short_code, type, token_id, issuance_quota, admin_email, wallet_address, encrypted_private_key)
+          VALUES (${name}, ${short_code.toUpperCase()}, ${type}, ${token}, ${quota}, ${email}, ${walletAddress}, ${encryptedKey})
+          RETURNING id, token_id, name AS institution_name
+        `;
+      } catch (insertErr) {
+        // Fallback if encrypted_private_key column doesn't exist
+        if (insertErr.message && insertErr.message.includes('encrypted_private_key')) {
+          [inst] = await sql`
+            INSERT INTO institutions (name, short_code, type, token_id, issuance_quota, admin_email, wallet_address)
+            VALUES (${name}, ${short_code.toUpperCase()}, ${type}, ${token}, ${quota}, ${email}, ${walletAddress})
+            RETURNING id, token_id, name AS institution_name
+          `;
+        } else {
+          throw insertErr;
+        }
+      }
       await logAudit('institution_onboarded', null, inst.id, { name, short_code, type, quota, wallet: walletAddress }, req);
       return res.status(201).json({
         success: true,

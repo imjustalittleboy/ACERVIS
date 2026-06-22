@@ -14,6 +14,9 @@
 - For combined credential+transcript batch CSV, use two-section format with alternating STUDENT/SUBJECT type markers — STUDENT rows fill student-level columns, SUBJECT rows fill course-level columns, grouped by name+matric. Confidence: 0.70
 - All batch operations (credential issue, transcript issue, batch verification) should accept CSV upload as the primary input format — JSON is impractical for Nigerian universities with thousands of students. Confidence: 0.75
 
+# security
+- Never expose credentials, passwords, or secrets in terminal help text or any public-facing UI — sensitive values should remain hidden from all users. Confidence: 0.80
+
 # workflow
 - Ask thorough requirements-scoping questions before starting implementation — prefer comprehensive discovery over quick starts. Confidence: 0.75
 
