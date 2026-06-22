@@ -217,7 +217,8 @@ export default async function handler(req, res) {
         return error(res, 'ACV_409', 'Quota exceeded', 403);
       const result = await processCredentials(sql, inst, rows, pepper, wallet);
       await logAudit('batch_issue', inst.id, null, { csvType: 'credential', count: result.results.length, errors: result.errors.length }, req);
-      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes, blockchain_signing: !!wallet, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
+      const debugSample2 = rows[0] ? `student_name=${rows[0].student_name}, matric=${rows[0].matric_number}, year=${rows[0].graduation_year}, course=${rows[0].course_name}, degree=${rows[0].degree_type}` : 'no data';
+      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, errors: result.errors.length > 0 ? result.errors : undefined, tx_hashes: result.txHashes, blockchain_signing: !!wallet, _debug: { headers: headers, sample: debugSample2 }, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
     }
 
     if (isCredential && hasSubjectCols && !isCombined)
