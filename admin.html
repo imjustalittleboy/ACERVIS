@@ -512,6 +512,13 @@
           hdr.innerHTML = Icons.checkCircle + ' Issuance Complete';
           const results = d.results || [];
           let html = `<p style="font-size:0.7rem;color:var(--text-muted);margin-bottom:12px;">${results.length} student(s) processed · ${d.summary?.errors||0} error(s)${d.tx_hashes?.length ? ' · ⛓ Anchored on Polygon' : ''}</p>`;
+          // Show errors if any
+          if (d.errors && d.errors.length > 0) {
+            html += `<div style="margin-bottom:12px;padding:10px;background:rgba(229,57,53,.06);border-radius:8px;font-size:0.65rem;font-family:'JetBrains Mono',monospace;">
+              <p style="color:var(--revoked);margin-bottom:6px;">Error details:</p>
+              ${d.errors.map(e => `<div style="padding:4px 0;color:var(--text-mid);">${esc(e.row)} — ${esc(e.error)}${e.fields ? ' (name:'+e.fields.name+', matric:'+e.fields.matric+')' : ''}</div>`).join('')}
+            </div>`;
+          }
           html += '<table><thead><tr><th>Student</th><th>Credential NCN</th>';
           if (results[0]?.transcript) html += '<th>Transcript NCN</th><th>Subjects</th>';
           html += '<th>Hash</th></tr></thead><tbody>';

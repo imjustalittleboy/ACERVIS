@@ -59,7 +59,7 @@ async function processCredentials(sql, inst, rows, pepper, wallet) {
       const y = parseInt(r.graduation_year || r.grad_year || r.year, 10);
       const c = (r.course_name || r.course || '').trim();
       const d = (r.degree_type || r.type || '').trim();
-      if (!n || !m || !y || !c || !d) { errors.push({ row: n || '?', error: 'Missing fields' }); continue; }
+      if (!n || !m || !y || !c || !d) { errors.push({ row: n || '?', error: 'Missing fields', fields: { name: n, matric: m, year: y, course: c, degree: d } }); continue; }
 
       const slt = salt();
       const h = hashPayload(pepper, credPayload(n, y, c, d, m), slt);
