@@ -1,6 +1,7 @@
 {
   "name": "acervis-protocol",
   "version": "3.1.0",
+  "type": "module",
   "description": "Pan-Nigerian Blockchain Academic Credential & Transcript Verification Protocol",
   "main": "index.html",
   "scripts": {

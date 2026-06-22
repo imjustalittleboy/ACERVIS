@@ -173,6 +173,7 @@ export default async function handler(req, res) {
   } catch (err) {
     console.error('ACV_INST_ERROR:', err);
     if (err.code === '23505') return error(res, 'ACV_409', 'Duplicate entry', 409);
-    return error(res, 'ACV_500', 'Internal server error', 500);
+    console.error('ACV_INST_ERROR_DETAIL:', err.message, err.stack?.slice(0, 300));
+    return error(res, 'ACV_500', err.message || 'Internal server error', 500);
   }
 }
