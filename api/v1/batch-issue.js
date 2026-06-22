@@ -56,7 +56,7 @@ function detectCsvType(headers) {
   const hasCgpa = h.includes('cgpa');
 
   if (hasTypeCol) return 'combined_markers';   // STUDENT/SUBJECT type rows
-  if (hasStudentCols && hasSubjectCols) return 'combined_flat';  // student info repeated each row
+  if (hasStudentCols && hasSubjectCols) return 'combined_note';  // has student + subject data but no type column
   if (hasStudentCols && !hasSubjectCols) return 'credential_only';
   return 'unknown';
 }
@@ -344,12 +344,17 @@ export default async function handler(req, res) {
         break;
 
       case 'combined_markers':
-      case 'combined_flat':
-        if (institution.issued_count + parsed.data.filter(r => (r.type || '').trim().toUpperCase() === 'STUDENT' || !r.type).length > institution.issuance_quota) {
+        if (institution.issued_count + parsed.data.filter(r => (r.type || '').trim().toUpperCase() === 'STUDENT').length > institution.issuance_quota) {
           return error(res, 'ACV_409', 'Issuance quota exceeded', 403);
         }
         result = await processCombined(getDb(), institution, parsed.data, process.env.PROTOCOL_PEPPER);
         break;
+
+      case 'combined_note':
+        return error(res, 'ACV_400',
+          'CSV has both student columns and course columns but is missing a "type" column. '
+          + 'Add a "type" column with STUDENT rows for student info and SUBJECT rows for courses. '
+          + 'Download the combined template from /api/v1/csv?type=transcript for the correct format.', 400);
 
       default:
         return error(res, 'ACV_400', 
