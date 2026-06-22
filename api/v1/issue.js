@@ -14,6 +14,7 @@ import { walletFromInstitution } from './_lib/crypto.js';
 // ─── Helpers ──────────────────────────────────────────────
 
 function hashPayload(pepper, payload, salt) {
+  if (!pepper) throw new Error('PROTOCOL_PEPPER environment variable is not configured. Add it in Vercel → Settings → Environment Variables.');
   return createHmac('sha256', pepper).update(payload + salt).digest('hex');
 }
 

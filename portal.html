@@ -210,6 +210,7 @@
           <div class="r-field"><span class="k">NCN</span><span class="v mono">${esc(meta.ncn||'—')}</span></div>
           ${isTranscript ? `<div class="r-field"><span class="k">CGPA</span><span class="v">${meta.cgpa||'—'}</span></div><div class="r-field"><span class="k">TOTAL CREDITS</span><span class="v">${meta.total_credits||0}</span></div>` : ''}
           <div class="r-field full"><span class="k">INTEGRITY</span><span class="v" style="color:${data.integrity_check==='PASSED'?'var(--success)':'var(--revoked)'};">${data.integrity_check==='PASSED' ? '✓ Hash matches on-chain record' : '✗ Data tampering detected'}</span></div>
+          ${meta._debug ? `<div class="r-field full"><span class="k">DEBUG</span><span class="v mono" style="font-size:0.5rem;color:var(--text-faint);">payload: ${esc(meta._debug.payload)} | stored: ${meta._debug.stored_prefix}… | computed: ${meta._debug.computed_prefix}… | salt: ${meta._debug.salt_prefix}…</span></div>` : ''}
         </div>`;
 
         // Subjects

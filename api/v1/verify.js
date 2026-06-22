@@ -108,9 +108,9 @@ async function verifyCredential(sql, pepper, ncn) {
     if (!integrityOk) {
         await sql`
             INSERT INTO audit_logs (action, target_id, metadata) 
-            VALUES ('verify_tampered', ${record.id}, ${JSON.stringify({ ncn, reason: 'Hash mismatch' })})
+            VALUES ('verify_tampered', ${record.id}, ${JSON.stringify({ ncn, reason: 'Hash mismatch', payload, saltPrefix: record.salt?.slice(0,8), computed: localHash?.slice(0,16), stored: record.blockchain_hash?.slice(0,16) })})
         `.catch(() => {});
-        return { state: 'TAMPERED', metadata: record, blockchain: null, integrity_check: 'FAILED' };
+        return { state: 'TAMPERED', metadata: { ...record, _debug: { payload, computed_prefix: localHash?.slice(0,16), stored_prefix: record.blockchain_hash?.slice(0,16), salt_prefix: record.salt?.slice(0,8) } }, blockchain: null, integrity_check: 'FAILED' };
     }
 
     // Blockchain verification
