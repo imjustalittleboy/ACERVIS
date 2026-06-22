@@ -6,7 +6,7 @@
 // DELETE/api/v1/transcripts?ncn=X    — Hard delete (super admin only)
 import Papa from 'papaparse';
 import { handlePreflight, error } from './_lib/cors.js';
-import { getDb, frag } from './_lib/db.js';
+import { getDb, exec } from './_lib/db.js';
 import { authenticateInstitution, verifySuperAdmin } from './_lib/auth.js';
 import { logAudit } from './_lib/audit.js';
 
@@ -58,18 +58,25 @@ export default async function handler(req, res) {
       const p = parseInt(page, 10) || 1;
       const l = Math.min(parseInt(limit, 10) || 20, 100);
       const offset = (p - 1) * l;
-      let conditions = frag`t.institution_id = ${instId}`;
-      if (status) conditions = frag`${conditions} AND t.status = ${status}`;
-      if (search) conditions = frag`${conditions} AND (t.student_name ILIKE ${'%' + search + '%'} OR t.matric_number ILIKE ${'%' + search + '%'} OR t.ncn ILIKE ${'%' + search + '%'})`;
+      const clauses = [`t.institution_id = $1`];
+      const params = [instId];
+      if (status) { clauses.push(`t.status = $${params.length + 1}`); params.push(status); }
+      if (search) {
+        const s = `%${search}%`;
+        clauses.push(`(t.student_name ILIKE $${params.length + 1} OR t.matric_number ILIKE $${params.length + 2} OR t.ncn ILIKE $${params.length + 3})`);
+        params.push(s, s, s);
+      }
+      const whereClause = clauses.join(' AND ');
 
-      const [{ count }] = await sql`SELECT COUNT(*) FROM transcripts t WHERE ${conditions}`;
-      const rows = await sql`
-        SELECT t.id,t.ncn,t.student_name,t.matric_number,t.course_name,t.degree_type,t.graduation_year,t.cgpa,t.total_credits,t.status,t.issued_at,t.tx_hash,t.anchored_at,
+      const [{ count }] = await exec(sql, `SELECT COUNT(*) FROM transcripts t WHERE ${whereClause}`, params);
+      const rows = await exec(sql,
+        `SELECT t.id,t.ncn,t.student_name,t.matric_number,t.course_name,t.degree_type,t.graduation_year,t.cgpa,t.total_credits,t.status,t.issued_at,t.tx_hash,t.anchored_at,
           (SELECT COUNT(*) FROM transcript_subjects WHERE transcript_id=t.id) AS subjects_count,
           i.name AS institution_name,i.short_code
         FROM transcripts t JOIN institutions i ON t.institution_id=i.id
-        WHERE ${conditions} ORDER BY t.issued_at DESC LIMIT ${l} OFFSET ${offset}
-      `;
+        WHERE ${whereClause} ORDER BY t.issued_at DESC LIMIT ${l} OFFSET ${offset}`,
+        params
+      );
       return res.status(200).json({ transcripts: rows, pagination: { page: p, limit: l, total: parseInt(count, 10), totalPages: Math.ceil(parseInt(count, 10) / l) } });
     }
 
@@ -117,15 +124,23 @@ export default async function handler(req, res) {
       const l = Math.min(parseInt(limit, 10) || 20, 100);
       const offset = (p - 1) * l;
 
-      let cond = frag`TRUE`;
-      if (institution) cond = frag`${cond} AND t.institution_id = ${institution.id}`;
-      if (q) cond = frag`${cond} AND (t.student_name ILIKE ${'%' + q + '%'} OR t.matric_number ILIKE ${'%' + q + '%'} OR t.ncn ILIKE ${'%' + q + '%'})`;
-      if (s) cond = frag`${cond} AND t.status = ${s}`;
-      const [{ count: total }] = await sql`SELECT COUNT(*) FROM transcripts t WHERE ${cond}`;
-      const rows = await sql`
-        SELECT t.*, (SELECT COUNT(*) FROM transcript_subjects WHERE transcript_id=t.id) AS subjects_count, i.name AS institution_name,i.short_code
-        FROM transcripts t JOIN institutions i ON t.institution_id=i.id WHERE ${cond} ORDER BY t.issued_at DESC LIMIT ${l} OFFSET ${offset}
-      `;
+      const clauses2 = [`TRUE`];
+      const sparams = [];
+      if (institution) { clauses2.push(`t.institution_id = $${sparams.length + 1}`); sparams.push(institution.id); }
+      if (q) {
+        const sq = `%${q}%`;
+        clauses2.push(`(t.student_name ILIKE $${sparams.length + 1} OR t.matric_number ILIKE $${sparams.length + 2} OR t.ncn ILIKE $${sparams.length + 3})`);
+        sparams.push(sq, sq, sq);
+      }
+      if (s) { clauses2.push(`t.status = $${sparams.length + 1}`); sparams.push(s); }
+      const swhere = clauses2.join(' AND ');
+
+      const [{ count: total }] = await exec(sql, `SELECT COUNT(*) FROM transcripts t WHERE ${swhere}`, sparams);
+      const rows = await exec(sql,
+        `SELECT t.*, (SELECT COUNT(*) FROM transcript_subjects WHERE transcript_id=t.id) AS subjects_count, i.name AS institution_name,i.short_code
+        FROM transcripts t JOIN institutions i ON t.institution_id=i.id WHERE ${swhere} ORDER BY t.issued_at DESC LIMIT ${l} OFFSET ${offset}`,
+        sparams
+      );
       return res.status(200).json({ transcripts: rows, pagination: { page: p, limit: l, total: parseInt(total, 10), totalPages: Math.ceil(parseInt(total, 10) / l) } });
     }
 

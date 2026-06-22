@@ -9,7 +9,7 @@
 // POST  /api/v1/credentials          — With raw CSV body (ncn column) for bulk status
 import Papa from 'papaparse';
 import { handlePreflight, error } from './_lib/cors.js';
-import { getDb, frag } from './_lib/db.js';
+import { getDb, exec } from './_lib/db.js';
 import { authenticateInstitution, verifySuperAdmin } from './_lib/auth.js';
 import { logAudit } from './_lib/audit.js';
 
@@ -48,16 +48,24 @@ export default async function handler(req, res) {
       const l = Math.min(parseInt(limit, 10) || 20, 100);
       const offset = (p - 1) * l;
 
-      let conditions = frag`c.institution_id = ${instId}`;
-      if (status) conditions = frag`${conditions} AND c.status = ${status}`;
-      if (search) conditions = frag`${conditions} AND (c.student_name ILIKE ${'%' + search + '%'} OR c.matric_number ILIKE ${'%' + search + '%'} OR c.ncn ILIKE ${'%' + search + '%'})`;
+      // Build flat parameterized query
+      const clauses = [`c.institution_id = $1`];
+      const params = [instId];
+      if (status) { clauses.push(`c.status = $${params.length + 1}`); params.push(status); }
+      if (search) {
+        const s = `%${search}%`;
+        clauses.push(`(c.student_name ILIKE $${params.length + 1} OR c.matric_number ILIKE $${params.length + 2} OR c.ncn ILIKE $${params.length + 3})`);
+        params.push(s, s, s);
+      }
+      const whereClause = clauses.join(' AND ');
 
-      const [{ count }] = await sql`SELECT COUNT(*) FROM credentials c WHERE ${conditions}`;
-      const rows = await sql`
-        SELECT c.id,c.ncn,c.student_name,c.matric_number,c.course_name,c.degree_type,c.grad_year,c.status,c.issued_at,c.tx_hash,c.anchored_at, i.name AS institution_name,i.short_code
+      const [{ count }] = await exec(sql, `SELECT COUNT(*) FROM credentials c WHERE ${whereClause}`, params);
+      const rows = await exec(sql,
+        `SELECT c.id,c.ncn,c.student_name,c.matric_number,c.course_name,c.degree_type,c.grad_year,c.status,c.issued_at,c.tx_hash,c.anchored_at, i.name AS institution_name,i.short_code
         FROM credentials c JOIN institutions i ON c.institution_id = i.id
-        WHERE ${conditions} ORDER BY c.issued_at DESC LIMIT ${l} OFFSET ${offset}
-      `;
+        WHERE ${whereClause} ORDER BY c.issued_at DESC LIMIT ${l} OFFSET ${offset}`,
+        params
+      );
       return res.status(200).json({ credentials: rows, pagination: { page: p, limit: l, total: parseInt(count, 10), totalPages: Math.ceil(parseInt(count, 10) / l) } });
     }
 
@@ -109,12 +117,22 @@ export default async function handler(req, res) {
       const l = Math.min(parseInt(limit, 10) || 20, 100);
       const offset = (p - 1) * l;
 
-      let cond = frag`TRUE`;
-      if (institution) cond = frag`${cond} AND c.institution_id = ${institution.id}`;
-      if (q) cond = frag`${cond} AND (c.student_name ILIKE ${'%' + q + '%'} OR c.matric_number ILIKE ${'%' + q + '%'} OR c.ncn ILIKE ${'%' + q + '%'})`;
-      if (s) cond = frag`${cond} AND c.status = ${s}`;
-      const [{ count: total }] = await sql`SELECT COUNT(*) FROM credentials c WHERE ${cond}`;
-      const rows = await sql`SELECT c.*, i.name AS institution_name,i.short_code FROM credentials c JOIN institutions i ON c.institution_id=i.id WHERE ${cond} ORDER BY c.issued_at DESC LIMIT ${l} OFFSET ${offset}`;
+      const clauses = [`TRUE`];
+      const sparams = [];
+      if (institution) { clauses.push(`c.institution_id = $${sparams.length + 1}`); sparams.push(institution.id); }
+      if (q) {
+        const sq = `%${q}%`;
+        clauses.push(`(c.student_name ILIKE $${sparams.length + 1} OR c.matric_number ILIKE $${sparams.length + 2} OR c.ncn ILIKE $${sparams.length + 3})`);
+        sparams.push(sq, sq, sq);
+      }
+      if (s) { clauses.push(`c.status = $${sparams.length + 1}`); sparams.push(s); }
+      const swhere = clauses.join(' AND ');
+
+      const [{ count: total }] = await exec(sql, `SELECT COUNT(*) FROM credentials c WHERE ${swhere}`, sparams);
+      const rows = await exec(sql,
+        `SELECT c.*, i.name AS institution_name,i.short_code FROM credentials c JOIN institutions i ON c.institution_id=i.id WHERE ${swhere} ORDER BY c.issued_at DESC LIMIT ${l} OFFSET ${offset}`,
+        sparams
+      );
       return res.status(200).json({ credentials: rows, pagination: { page: p, limit: l, total: parseInt(total, 10), totalPages: Math.ceil(parseInt(total, 10) / l) } });
     }
 

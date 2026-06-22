@@ -7,7 +7,7 @@
 // DELETE /api/v1/institutions?id=X    — Deactivate (super admin)
 import { randomBytes } from 'crypto';
 import { handlePreflight, error } from './_lib/cors.js';
-import { getDb, frag } from './_lib/db.js';
+import { getDb, exec } from './_lib/db.js';
 import { verifySuperAdmin } from './_lib/auth.js';
 import { logAudit } from './_lib/audit.js';
 import { generateInstitutionWallet } from './_lib/crypto.js';
@@ -48,18 +48,25 @@ export default async function handler(req, res) {
       const p = parseInt(page, 10) || 1;
       const l = Math.min(parseInt(limit, 10) || 20, 100);
       const offset = (p - 1) * l;
-      let where = frag`TRUE`;
-      if (search) where = frag`${where} AND (i.name ILIKE ${'%' + search + '%'} OR i.short_code ILIKE ${'%' + search + '%'})`;
-      if (status === 'active') where = frag`${where} AND i.is_active = TRUE`;
-      if (status === 'inactive') where = frag`${where} AND i.is_active = FALSE`;
+      const clauses = [`TRUE`];
+      const sparams = [];
+      if (search) {
+        const s = `%${search}%`;
+        clauses.push(`(i.name ILIKE $${sparams.length + 1} OR i.short_code ILIKE $${sparams.length + 2})`);
+        sparams.push(s, s);
+      }
+      if (status === 'active') clauses.push(`i.is_active = TRUE`);
+      if (status === 'inactive') clauses.push(`i.is_active = FALSE`);
+      const iwhere = clauses.join(' AND ');
 
-      const [{ count }] = await sql`SELECT COUNT(*) FROM institutions i WHERE ${where}`;
-      const rows = await sql`
-        SELECT i.*,
+      const [{ count }] = await exec(sql, `SELECT COUNT(*) FROM institutions i WHERE ${iwhere}`, sparams);
+      const rows = await exec(sql,
+        `SELECT i.*,
           (SELECT COUNT(*) FROM credentials WHERE institution_id = i.id) AS credentials_count,
           (SELECT COUNT(*) FROM transcripts WHERE institution_id = i.id) AS transcripts_count
-        FROM institutions i WHERE ${where} ORDER BY i.created_at DESC LIMIT ${l} OFFSET ${offset}
-      `;
+        FROM institutions i WHERE ${iwhere} ORDER BY i.created_at DESC LIMIT ${l} OFFSET ${offset}`,
+        sparams
+      );
       return res.status(200).json({ institutions: rows, pagination: { page: p, limit: l, total: parseInt(count, 10), totalPages: Math.ceil(parseInt(count, 10) / l) } });
     }
 

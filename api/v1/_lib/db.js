@@ -1,5 +1,5 @@
 // ACERVIS: Database Helper
-import { neon, sql as neonSql } from '@neondatabase/serverless';
+import { neon } from '@neondatabase/serverless';
 
 let _sql = null;
 
@@ -8,12 +8,16 @@ export function getDb() {
   return _sql;
 }
 
-// Import the `sql` fragment helper from neon for building composable fragments
-// Usage:
-//   import { getDb, frag } from './_lib/db.js';
-//   const sql = getDb();
-//   const conditions = frag`col = ${val1}`;
-//   const rows = await sql`SELECT * FROM t WHERE ${conditions}`;
-export function frag(strings, ...values) {
-  return neonSql(strings, ...values);
+// Build and execute a parameterized query without fragment nesting.
+// Uses the tagged template function manually: sql(['...', '...', ''], val1, val2)
+// @param {function} sql - the neon connection function from getDb()
+// @param {string} text - SQL with $1, $2, $3 placeholders
+// @param {array} params - parameter values
+// @returns {Promise<array>} rows
+export async function exec(sql, text, params = []) {
+  // Split text on $N placeholders to create template string parts
+  const parts = text.split(/\$\d+/);
+  // Add raw property for TemplateStringsArray compatibility
+  parts.raw = parts;
+  return sql(parts, ...params);
 }
