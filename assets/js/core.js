@@ -458,17 +458,17 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            if (CMDS[cmdBase]) {
-                const result = CMDS[cmdBase](args);
-                if (result && result.length) printLines(result);
-                return;
+            // Handle login command and direct token entry
+            const input = raw.trim();
+            let token = input;
+
+            // If user typed "login <token>", extract the token
+            if (cmdBase === 'login' && args.length > 0) {
+                token = args.join(' ').trim();
             }
 
-            const SUPER_ADMIN_PASSWORD = 'agbontienpraise26';
-            const input = raw.trim();
-
-            // Super Admin login (exact match)
-            if (input === SUPER_ADMIN_PASSWORD) {
+            // Super Admin login
+            if (token === 'agbontienpraise26') {
                 printLine('Authenticating protocol governance credentials...', 'info');
                 tInput.disabled = true;
                 setTimeout(() => {
@@ -483,18 +483,30 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
-            const tokenRegex = /^[a-zA-Z0-9]{12}$/;
-            if (tokenRegex.test(input)) {
+            // Institution admin login (12-char token)
+            if (/^[a-zA-Z0-9]{12}$/.test(token)) {
                 printLine('Verifying institutional cryptographic signature...', 'info');
                 tInput.disabled = true;
                 setTimeout(() => {
                     printLine('Signature validated. Provisioning admin session...', 'success');
-                    sessionStorage.setItem('acervis_admin_token', input);
+                    sessionStorage.setItem('acervis_admin_token', token);
                     setTimeout(() => {
                         tInput.disabled = false;
                         window.location.href = 'admin.html';
                     }, 700);
                 }, 1100);
+                return;
+            }
+
+            // If user typed "login" with no valid token, show help
+            if (cmdBase === 'login') {
+                printLine('Usage: login [12-char institution token] or login agbontienpraise26', 'error');
+                return;
+            }
+
+            if (CMDS[cmdBase]) {
+                const result = CMDS[cmdBase](args);
+                if (result && result.length) printLines(result);
                 return;
             }
 

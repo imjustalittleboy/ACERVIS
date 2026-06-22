@@ -1,58 +1,32 @@
 # ACERVIS — Blockchain Setup Guide
 
-This guide walks through everything you need to deploy and configure the ACERVIS smart contract on **Polygon Amoy Testnet**, create institutional wallets, and connect the backend to the blockchain.
+Your database and login are working. This guide gets the **Polygon Amoy** blockchain connected so credential hashes get anchored on-chain.
 
 ---
 
-## Table of Contents
+## What You'll Do
 
-1. [Prerequisites](#1-prerequisites)
-2. [Set Up a Wallet (MetaMask)](#2-set-up-a-wallet-metamask)
-3. [Get Test POL Tokens](#3-get-test-pol-tokens)
-4. [Configure Environment Variables](#4-configure-environment-variables)
-5. [Deploy the Smart Contract](#5-deploy-the-smart-contract)
-6. [Verify the Contract (Polygonscan)](#6-verify-the-contract-polygonscan)
-7. [Institution Wallet System — Auto-Generated Per Institution](#7-institution-wallet-system--auto-generated-per-institution)
-8. [Funding Institution Wallets with Gas](#8-funding-institution-wallets-with-gas)
-9. [Test the Connection](#9-test-the-connection)
-10. [Troubleshooting](#10-troubleshooting)
-
----
-
-## 1. Prerequisites
-
-Before starting, make sure you have:
-
-- **Node.js** v18+ installed (`node --version`)
-- **npm** installed (`npm --version`)
-- A **MetaMask** wallet browser extension
-- A free **Alchemy** account (or any Polygon Amoy RPC provider)
-- A **Vercel** project set up for the ACERVIS backend
-- A **Neon** Postgres database running with the schema applied
-
-Install the Hardhat toolchain locally:
-
-```bash
-npm install
+```
+1. Get a MetaMask wallet + Alchemy RPC URL  (10 min)
+2. Get free test POL from a faucet           (2 min)
+3. Deploy the smart contract via Remix IDE   (10 min)
+4. Add CONTRACT_ADDRESS to Vercel env vars   (3 min)
+5. Onboard an institution → wallet generated automatically
+6. Authorize that wallet on the contract     (2 min)
+7. Fund the wallet with test POL             (2 min)
+8. Issue a credential — it anchors on-chain  (done)
 ```
 
-This installs `hardhat`, `@nomicfoundation/hardhat-toolbox`, `ethers`, and `dotenv`.
-
 ---
 
-## 2. Set Up a Wallet (MetaMask)
+## 1. Get a Deployer Wallet (MetaMask)
 
-You need two wallets:
+This wallet will own the smart contract. You only need **one** — it pays gas to deploy and later funds institution wallets.
 
-1. **Deployer Wallet** — Owns the contract. Needs test POL for gas fees.
-2. **Institution Wallet** — Authorized by the contract to anchor credential hashes on-chain.
+**Steps:**
 
-### Create a Deployer Wallet
-
-**Option A: MetaMask (recommended for first-timers)**
-
-1. Install the [MetaMask](https://metamask.io) browser extension
-2. Create a new wallet or use an existing one
+1. Install [MetaMask](https://metamask.io) if you don't have it
+2. Create a wallet (or use an existing one)
 3. Add **Polygon Amoy Testnet** to MetaMask:
 
 | Field | Value |
@@ -61,464 +35,206 @@ You need two wallets:
 | RPC URL | `https://polygon-amoy.g.alchemy.com/v2/YOUR-API-KEY` |
 | Chain ID | `80002` |
 | Currency Symbol | `POL` |
-| Block Explorer | `https://amoy.polygonscan.com` |
+| Explorer | `https://amoy.polygonscan.com` |
 
-4. Copy the wallet address from MetaMask
+4. Copy your **wallet address** (starts with `0x`)
+5. Export your **private key**: MetaMask → three dots → Account details → Export Private Key
+6. Save the private key — you'll need it for deployment
 
-**Option B: Generate via CLI (for automated workflows)**
-
-Run this to generate a wallet and output its credentials:
-
-```bash
-npx hardhat console --network amoy
-```
-
-Then in the console:
-
-```javascript
-const wallet = ethers.Wallet.createRandom();
-console.log("Address:", wallet.address);
-console.log("Private Key:", wallet.privateKey);
-```
-
-> ⚠ **Save the private key** — it cannot be recovered if lost.
-
-### Export the Private Key from MetaMask
-
-1. Open MetaMask → Click the three dots → **Account details**
-2. Click **Export Private Key**
-3. Enter your password and copy the key (starts with `0x`)
+> Don't have an Alchemy API key yet? Sign up at [alchemy.com](https://alchemy.com) → Create App → Polygon Amoy. Copy the HTTPS URL.
 
 ---
 
-## 3. Get Test POL Tokens
+## 2. Get Free Test POL
 
-The deployer wallet needs test POL to pay gas fees for deploying the contract.
+Your deployer wallet needs test POL to pay gas for deploying the contract.
 
-### Faucets (free test tokens):
+**Go to one of these faucets and paste your wallet address:**
 
-| Faucet | Link | Notes |
-|--------|------|-------|
-| Alchemy Faucet | [faucets.alchemy.com](https://faucets.alchemy.com/polygon-amoy) | Requires Alchemy account, most reliable |
-| Polygon Faucet | [faucet.polygon.technology](https://faucet.polygon.technology) | Official Polygon faucet |
+| Faucet | Link |
+|--------|------|
+| Alchemy | [faucets.alchemy.com/polygon-amoy](https://faucets.alchemy.com/polygon-amoy) |
+| Polygon | [faucet.polygon.technology](https://faucet.polygon.technology) |
+
+Request **0.5 POL**. It's free — testnet tokens have no value. The deployment costs ~0.01 POL so you have plenty.
+
+Wait 30 seconds, then check your MetaMask balance. If it shows POL, you're ready.
+
+---
+
+## 3. Deploy the Smart Contract (via Remix IDE)
+
+Remix runs in your browser — no CLI needed.
+
+**Step-by-step:**
+
+1. Go to [remix.ethereum.org](https://remix.ethereum.org)
+2. Create a new file: `AcervisRegistry.sol`
+3. Copy-paste the contract from `contracts/AcervisRegistry.sol` in this project
+4. Go to the **Solidity Compiler** tab (left sidebar, 3rd icon)
+5. Set compiler to `0.8.20`
+6. Click **Compile AcervisRegistry.sol** — should show green check
+7. Go to **Deploy & Run Transactions** tab (left sidebar, 4th icon)
+8. Set **Environment** to **Injected Provider — MetaMask**
+9. MetaMask will ask to connect — approve it
+10. Make sure the selected account is your **deployer wallet**
+11. Click **Deploy**
+12. MetaMask opens a confirmation — click **Confirm**
+13. Wait ~10 seconds for the transaction to confirm
+14. The deployed contract appears under **Deployed Contracts** — **copy the address** (starts with `0x`)
+
+**You now have a deployed contract.** The deployer address is automatically the **Super Admin** of the contract.
+
+---
+
+## 4. Add CONTRACT_ADDRESS to Vercel
+
+You need to add the deployed address to Vercel's environment variables so the API can use it.
 
 **Steps:**
 
-1. Go to the faucet website
-2. Connect or paste your deployer wallet address
-3. Request test POL (usually 0.1–1 POL per request)
-4. Wait 30–60 seconds for the transaction to confirm
+1. Go to [vercel.com](https://vercel.com) → your project
+2. Click **Settings** → **Environment Variables**
+3. Add the following variables:
 
-**How much do you need?**
+| Name | Value |
+|------|-------|
+| `ALCHEMY_RPC_URL` | Your Alchemy HTTPS URL |
+| `CONTRACT_ADDRESS` | The deployed address from step 3 |
+| `SUPER_ADMIN_SECRET` | Whatever you set (currently `agbontienpraise26` for local testing) |
+| `INSTITUTION_KEY_ENCRYPTION_KEY` | A 64-char hex string (generate below) |
+| `DATABASE_URL` | Already set (your Neon connection string) |
+| `PROTOCOL_PEPPER` | Already set |
 
-| Operation | Estimated Gas (POL) |
-|-----------|-------------------|
-| Deploy contract | ~0.01 POL |
-| Authorize 1 institution | ~0.002 POL |
-| Anchor 1000 hashes | ~0.5 POL |
-| **Total (initial setup)** | **~0.02 POL** |
+4. Click **Save**
+5. Go to **Deployments**, find the latest, click **Redeploy** (three dots → Redeploy)
 
-Request 0.5 POL to be safe — it's testnet and free.
+**Generate INSTITUTION_KEY_ENCRYPTION_KEY:**
 
-### Verify the Balance
-
-Check that your wallet received the test tokens:
-
-```bash
-node -e "
-const { ethers } = require('ethers');
-const provider = new ethers.JsonRpcProvider('https://polygon-amoy.g.alchemy.com/v2/YOUR-KEY');
-provider.getBalance('YOUR_WALLET_ADDRESS').then(b => console.log('Balance:', ethers.formatEther(b), 'POL'));
-"
-```
-
----
-
-## 4. Configure Environment Variables
-
-Create a `.env` file in the project root by copying `.env.example`:
-
-```bash
-cp .env.example .env
-```
-
-Fill in your values:
-
-```env
-DATABASE_URL=postgresql://user:password@ep-xxxx.us-east-2.aws.neon.tech/acervis?sslmode=require
-
-PROTOCOL_PEPPER=a6f8c2d1e9b4a73f8c2d1e9b4a73f8c2
-SUPER_ADMIN_SECRET=your-super-secret-here
-
-# --- Key Encryption ---
-# Encrypts institution wallet private keys stored in the database.
-# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-INSTITUTION_KEY_ENCRYPTION_KEY=a6f8c2d1e9b4a73f8c2d1e9b4a73f8c2d1e9b4a73f8c2d1e9b4a73f8c2d1e9b4
-
-# --- Blockchain ---
-# Your deployer wallet's private key (used for Hardhat deployment + gas funding)
-PRIVATE_KEY=0x...
-
-# Your Alchemy RPC URL
-ALCHEMY_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/your-api-key
-
-# Will be set after deployment
-CONTRACT_ADDRESS=
-```
-
-> ⚠ **Security:** Never commit `.env` to git. The `.gitignore` already excludes it.
-
----
-
-## 5. Deploy the Smart Contract
-
-### Step 1: Compile the Contract
-
-```bash
-npx hardhat compile
-```
-
-This compiles `contracts/AcervisRegistry.sol` and generates artifacts in `artifacts/`.
-
-Expected output:
-```
-Compiled 1 Solidity file successfully
-```
-
-### Step 2: Deploy to Polygon Amoy
-
-```bash
-npx hardhat run scripts/deploy.cjs --network amoy
-```
-
-This uses the PRIVATE_KEY from your `.env` file. The deployer becomes the **Super Admin** of the contract.
-
-Expected output:
-
-```
-═══════════════════════════════════════════
-   ACERVIS — Polygon Amoy Deployment
-═══════════════════════════════════════════
-
-  Deployer:    0x1234...abcd
-  Balance:     0.5 POL
-  Network:     Polygon Amoy Testnet
-
-🚀 Deploying AcervisRegistry...
-
-✅ Contract deployed!
-   Address:    0x5678...ef01
-   TX:         0x9012...3456
-   Super Admin: 0x1234...abcd
-```
-
-### Step 3: Save the Contract Address
-
-Copy the deployed contract address and add it to your `.env`:
-
-```env
-CONTRACT_ADDRESS=0x5678...ef01
-```
-
-### Step 4: Full Setup (with test institution onboarding)
-
-If you want to also authorize a test institution on-chain automatically:
-
-```bash
-npx hardhat run scripts/deploy.cjs --network amoy -- --setup
-```
-
-Or set these in your `.env` first:
-
-```env
-TEST_INSTITUTION_NAME="Admiralty University"
-TEST_INSTITUTION_CODE=ADUN
-TEST_INSTITUTION_QUOTA=10000
-```
-
-Then run with `--setup`:
-
-```bash
-node scripts/deploy.cjs --setup
-```
-
-This creates a random institutional wallet and authorizes it on-chain.
-
----
-
-## 6. Verify the Contract (Polygonscan)
-
-Verifying makes the contract source code public on Polygonscan so anyone can read it.
-
-### Get a Polygonscan API Key
-
-1. Sign up at [polygonscan.com](https://polygonscan.com)
-2. Go to your account → **API Keys**
-3. Create a new key
-
-### Add to `.env`
-
-```env
-POLYGONSCAN_API_KEY=your-api-key-here
-```
-
-### Verify
-
-```bash
-npx hardhat verify --network amoy CONTRACT_ADDRESS
-```
-
-Replace `CONTRACT_ADDRESS` with the deployed address.
-
-After verification, you can see the contract at:
-`https://amoy.polygonscan.com/address/CONTRACT_ADDRESS`
-
----
-
-## 7. Institution Wallet System — Auto-Generated Per Institution
-
-ACERVIS automatically generates a unique Ethereum wallet for **every institution** during onboarding. This replaces the old single `INSTITUTION_PRIVATE_KEY` approach.
-
-### How It Works
-
-1. **Onboarding**: When the Super Admin creates an institution via the API, a new wallet is generated (`ethers.Wallet.createRandom()`)
-2. **Encryption**: The private key is encrypted with **AES-256-GCM** using `INSTITUTION_KEY_ENCRYPTION_KEY` from `.env`
-3. **Storage**: Only the **wallet address** and **encrypted private key** are stored in the `institutions` DB table
-4. **Signing**: During batch issuance, the backend fetches the institution's key, decrypts it, and signs transactions — **each institution signs with its own wallet**
-
-### Authorize Institution Wallets on the Contract
-
-After onboarding, the Super Admin must authorize each institution's wallet on the smart contract.
-The wallet address is returned in the onboarding response. Run this for each institution:
-
-```bash
-npx hardhat console --network amoy
-```
-
+Open your browser console (F12) and run:
 ```javascript
-const contract = await ethers.getContractAt('AcervisRegistry', '0xYOUR_CONTRACT_ADDRESS');
-
-// Authorize each institution wallet
-const tx = await contract.authorizeInstitution(
-  '0xINSTITUTION_WALLET_ADDRESS',       // From onboarding response
-  'Admiralty University of Nigeria',     // Institution name
-  10000                                  // On-chain issuance quota (should match DB)
-);
-await tx.wait();
-console.log('✅ Authorized:', tx.hash);
+(await crypto.subtle.digest('SHA-256', new TextEncoder().encode(Date.now().toString()))).then(h => {
+  const hex = Array.from(new Uint8Array(h)).map(b => b.toString(16).padStart(2,'0')).join('');
+  console.log(hex);
+})
 ```
-
-### View Institution Wallets
-
-Use the API to see each institution's wallet:
-
-```bash
-curl -H "x-super-admin-secret: YOUR_SECRET" \
-  https://your-project.vercel.app/api/v1/institutions
-```
-
-Each entry includes `wallet_address`. The private key is never exposed.
+Or just use this fixed one for testing: `a6f8c2d1e9b4a73f8c2d1e9b4a73f8c2d1e9b4a73f8c2d1e9b4a73f8c2d1e9b4`
 
 ---
 
-## 8. Funding Institution Wallets with Gas
+## 5. Onboard an Institution (Wallet Auto-Generated)
 
-Each institution wallet needs POL to pay gas fees for anchoring credential hashes on-chain.
+When you onboard an institution via the Super Admin console, the backend **automatically generates a wallet** for that institution. The private key is encrypted and stored in the database.
 
-### One-by-One (Manual)
+**Steps:**
 
-Send POL from your deployer wallet via Hardhat console:
+1. Log into the Super Admin console (type `agbontienpraise26` in the terminal on index.html)
+2. Go to **Onboard Institution** tab
+3. Fill in: name, short code, type, quota, email
+4. Click **Authorize Institution**
+5. The response shows:
+   - **Token ID** — share this with the institution admin
+   - **Wallet Address** — you'll authorize this on the contract next
 
-```bash
-npx hardhat console --network amoy
+---
+
+## 6. Authorize the Institution Wallet on the Contract
+
+The smart contract only allows authorized wallets to anchor hashes. You need to call `authorizeInstitution()` with the wallet address from step 5.
+
+**Via Remix (same session from step 3):**
+
+1. In Remix, under **Deployed Contracts**, expand your `AcervisRegistry` contract
+2. Find the `authorizeInstitution` function
+3. Fill in:
+   - `_institution` — the wallet address from the onboarding response
+   - `_name` — institution name (e.g., "Admiralty University")
+   - `_quota` — same as DB quota (e.g., 10000)
+4. Click **transact**
+5. Confirm in MetaMask
+6. Wait for confirmation
+
+**Repeat for each institution you onboard.**
+
+---
+
+## 7. Fund the Institution Wallet with POL
+
+The institution wallet needs test POL to pay gas for anchoring hashes.
+
+**Via Remix (using a manual transaction):**
+
+1. In MetaMask, switch to your **deployer wallet** (the one with POL)
+2. Go to **Send** → enter the institution's wallet address
+3. Enter amount: `0.1` POL (covers ~2000 anchors)
+4. Confirm
+
+**Or via the API** (if PRIVATE_KEY is set in Vercel env):
+
+```js
+// From the Super Admin console, you can call:
+// POST /api/v1/blockchain?action=fund-gas
+// With x-super-admin-secret header
+// This distributes 0.01 POL to all institution wallets
 ```
 
-```javascript
-const deployer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
-const tx = await deployer.sendTransaction({
-  to: '0xINSTITUTION_WALLET_ADDRESS',
-  value: ethers.parseEther('0.1')  // enough for ~10,000 anchors
-});
-await tx.wait();
-console.log('Sent:', tx.hash);
-```
+---
 
-### Bulk Distribution (via API)
+## 8. Verify It Works
 
-Super Admin can send POL to all institution wallets at once using the API.
-Only wallets with < 0.005 POL get funded. Default: 0.01 POL per wallet.
+**Option A: Via the API**
 
-```bash
-curl -X POST "https://your-project.vercel.app/api/v1/blockchain?action=fund-gas" \
-  -H "x-super-admin-secret: YOUR_SECRET" \
-  -H "Content-Type: application/json" \
-  -d '{"amount": 0.05}'
-```
+Log into the admin console with an institution token, then check the blockchain status. The console calls `/api/v1/blockchain` which returns the institution's wallet balance and contract status.
 
-**Response:**
-```json
-{
-  "success": true,
-  "summary": { "funded": 4, "skipped": 2, "total": 6 },
-  "results": [
-    { "name": "Admiralty Uni", "address": "0x...", "amount": "0.05", "skipped": false },
-    { "name": "Uni of Lagos", "address": "0x...", "skipped": true, "reason": "Already has sufficient balance" }
-  ]
-}
-```
-
-**How much POL do you need?**
-
-| Operation | Cost per call | Est. for 10,000 anchors |
-|-----------|--------------|------------------------|
-| Anchor 1 credential hash | ~0.00005 POL | 0.5 POL |
-| 0.01 POL sent to wallet | — | Covers ~200 anchors |
-
-Sending **0.1 POL** per institution wallet is a safe starting point.
-
-### Gas Management Notes
-
-- Each credential hash anchoring costs ~0.00005 POL on Amoy (testnet gas is near-zero)
-- Combined CSV (credential + transcript) costs 2 anchors per student → ~0.0001 POL per student
-- The deployer wallet (PRIVATE_KEY in .env) pays for gas distribution
-- Institutions only pay for their own credential anchoring
-- If a wallet runs out, use the `fund-gas` endpoint again
-
-## 9. Test the Connection
-
-### Via the API
-
-After deploying and setting env vars, make a request to the blockchain status endpoint:
-
-```bash
-curl -H "x-institution-token: TOKEN" https://your-project.vercel.app/api/v1/blockchain
-```
-
-Response shows the institution's own wallet balance:
-```json
-{
-  "configured": true,
-  "network": { "connected": true, "chain_id": 80002 },
-  "contract": { "deployed": true },
-  "wallet": { "address": "0x...", "balance": "0.01" },
-  "pending": 0
-}
-```
-
-### Via Polygonscan
+**Option B: Via Polygonscan**
 
 1. Go to `https://amoy.polygonscan.com/address/YOUR_CONTRACT_ADDRESS`
-2. Click the **Contract** tab → **Read Contract**
+2. Click **Contract** → **Read Contract**
 3. Call `superAdmin()` — should show your deployer address
-4. Call `institutions(0x...)` with an authorized institution address
+4. Call `institutions(0x...)` with your institution wallet address — should show authorized
+
+**Option C: Issue a credential**
+
+1. Log into the admin console with the institution's token
+2. Upload a CSV with one test student
+3. Click **Issue & Anchor**
+4. If blockchain is configured, the response shows `tx_hashes`
+5. Check the transaction on Polygonscan
 
 ---
 
-## 9. Troubleshooting
+## Quick Reference
 
-### "INTERNAL_ERROR: transaction failed"
-
-**Cause:** Out of gas or wallet balance too low.
-
-**Fix:** Get more test POL from the faucet (see [Section 3](#3-get-test-pol-tokens)).
-
-### "insufficient funds for gas"
-
-**Cause:** Wallet doesn't have enough POL.
-
-**Fix:** Send more test POL to the wallet doing the transaction.
-
-### "Nonce too low"
-
-**Cause:** Multiple transactions sent with the same nonce.
-
-**Fix:** Wait a few seconds for pending transactions to confirm, then retry.
-
-### "execution reverted: ACV: Hash already anchored"
-
-**Cause:** You're trying to anchor a credential hash that was already anchored on-chain.
-
-**Fix:** This is normal — each hash can only be anchored once. The API already handles this by catching the error and continuing.
-
-### Contract not appearing on Polygonscan
-
-**Cause:** Verification step was skipped or API key is wrong.
-
-**Fix:** Run `npx hardhat verify --network amoy CONTRACT_ADDRESS` with a valid Polygonscan API key.
-
-### "Invalid institutional token" from API
-
-**Cause:** The institution admin token doesn't match any active institution in the database.
-
-**Fix:** The institution must first be onboarded via the Super Admin console or the `/api/v1/institutions` endpoint. The on-chain authorization is separate from the database authorization.
+| Step | Where | What |
+|------|-------|------|
+| Get wallet | MetaMask | Create wallet, export private key |
+| Get POL | Alchemy faucet | Paste wallet address, get free POL |
+| Deploy contract | remix.ethereum.org | Compile + deploy AcervisRegistry.sol |
+| Set env vars | vercel.com → Settings → Environment | ALCHEMY_RPC_URL + CONTRACT_ADDRESS |
+| Onboard institution | Super Admin console (terminal) | Auto-generates wallet |
+| Authorize wallet | Remix → contract → authorizeInstitution() | Links wallet to contract |
+| Fund wallet | MetaMask → Send → 0.1 POL | Gives gas for anchoring |
+| Issue credential | Admin console → CSV upload | Anchors on-chain |
 
 ---
 
-## Architecture Summary
+## Env Vars Checklist
 
 ```
-┌──────────────────────────────────────────────────┐
-│                   Vercel (API)                    │
-│  ┌──────────┐  ┌──────────┐  ┌───────────────┐   │
-│  │  Issue   │  │  Verify  │  │  Blockchain   │   │
-│  │  Endpoint│  │  Endpoint│  │  Endpoint     │   │
-│  └────┬─────┘  └────┬─────┘  └──────┬────────┘   │
-│       │             │               │            │
-│       ▼             ▼               ▼            │
-│  ┌──────────────────────────────────────────┐    │
-│  │         INSTITUTION_PRIVATE_KEY          │    │
-│  │         signs & sends tx to contract     │    │
-│  └────────────────┬─────────────────────────┘    │
-└───────────────────┼──────────────────────────────┘
-                    │
-                    │ JSON-RPC (Alchemy)
-                    ▼
-┌──────────────────────────────────────────────────┐
-│              Polygon Amoy (Chain ID: 80002)       │
-│  ┌──────────────────────────────────────────┐    │
-│  │         AcervisRegistry.sol              │    │
-│  │  ┌─────────┐  ┌──────────────┐          │    │
-│  │  │registry  │  │ institutions │          │    │
-│  │  │mapping   │  │ mapping      │          │    │
-│  │  └─────────┘  └──────────────┘          │    │
-│  └──────────────────────────────────────────┘    │
-└──────────────────────────────────────────────────┘
+☐ DATABASE_URL           — already set (login works)
+☐ PROTOCOL_PEPPER        — already set
+☐ SUPER_ADMIN_SECRET     — already set
+☐ ALCHEMY_RPC_URL        — from Alchemy dashboard
+☐ CONTRACT_ADDRESS       — from Remix deployment
+☐ INSTITUTION_KEY_ENCRYPTION_KEY — generate once, never change
 ```
-
-### Key Files Reference
-
-| File | Purpose |
-|------|---------|
-| `contracts/AcervisRegistry.sol` | Smart contract source |
-| `hardhat.config.cjs` | Hardhat configuration (network, compiler) |
-| `scripts/deploy.cjs` | Deployment script |
-| `api/v1/blockchain.js` | API endpoint for status + retry anchoring |
-| `api/v1/batch-issue.js` | Batch issuance (anchors hashes on-chain) |
-| `api/v1/verify.js` | Verification (queries contract for hash status) |
-| `.env.example` | Template with all required env vars |
-| `BLOCKCHAIN_SETUP.md` | This guide |
 
 ---
 
-## Quick Reference: All Commands
+## Notes
 
-```bash
-# 1. Install dependencies
-npm install
-
-# 2. Compile contract
-npx hardhat compile
-
-# 3. Deploy
-npx hardhat run scripts/deploy.cjs --network amoy
-
-# 4. Verify on Polygonscan
-npx hardhat verify --network amoy CONTRACT_ADDRESS
-
-# 5. Authorize an institution (via Hardhat console)
-npx hardhat console --network amoy
-# Then run the authorize command from section 7
-
-# 6. Check blockchain status via API
-curl -H "x-institution-token: TOKEN" https://your.vercel.app/api/v1/blockchain
-```
+- **Each institution gets its own wallet** — generated during onboarding, key encrypted in DB
+- **The deployer wallet funds gas** — send 0.1 POL per institution wallet via MetaMask
+- **The contract is already on Amoy testnet** — no mainnet, no real money
+- **Test POL is free** — faucets refill daily if you run out
+- **Deploy once** — the contract doesn't change, you don't redeploy
