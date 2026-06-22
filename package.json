@@ -12,7 +12,7 @@
     "deploy:hardhat": "npx hardhat run scripts/deploy.cjs --network amoy"
   },
   "dependencies": {
-    "@neondatabase/serverless": "^0.9.3",
+    "@neondatabase/serverless": "^0.10.0",
     "ethers": "^6.12.1",
     "papaparse": "^5.4.1"
   },

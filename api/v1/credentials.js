@@ -47,6 +47,7 @@ export default async function handler(req, res) {
       const p = parseInt(page, 10) || 1;
       const l = Math.min(parseInt(limit, 10) || 20, 100);
       const offset = (p - 1) * l;
+
       let conditions = sql`c.institution_id = ${instId}`;
       if (status) conditions = sql`${conditions} AND c.status = ${status}`;
       if (search) conditions = sql`${conditions} AND (c.student_name ILIKE ${'%' + search + '%'} OR c.matric_number ILIKE ${'%' + search + '%'} OR c.ncn ILIKE ${'%' + search + '%'})`;
