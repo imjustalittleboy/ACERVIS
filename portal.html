@@ -1,366 +1,305 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Verification Portal | ACERVIS Protocol</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/void.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
-    <style>
-        .portal-container { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 100px 20px; }
-        .portal-card { background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 24px; padding: 48px; width: 100%; max-width: 680px; backdrop-filter: blur(20px); }
-        .portal-wide { max-width: 900px; }
-        .result-card { background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 20px; padding: 32px; margin-top: 32px; text-align: left; display: none; }
-        .result-card.visible { display: block; }
-        .result-card.verified { border-color: rgba(46,204,140,0.3); }
-        .result-card.revoked { border-color: rgba(229,57,53,0.3); }
-        .result-card.suspended { border-color: rgba(255,193,7,0.3); }
-        .result-card.tampered { border-color: rgba(255,143,0,0.3); }
-        .result-card.notfound { border-color: rgba(84,110,138,0.3); }
-        .result-card.error { border-color: rgba(229,57,53,0.3); }
-        .result-header { display: flex; align-items: center; gap: 16px; margin-bottom: 24px; padding-bottom: 20px; border-bottom: 1px solid var(--border-faint); }
-        .result-icon { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
-        .result-icon svg { width: 24px; height: 24px; }
-        .result-title { font-family: 'Cormorant Garamond', serif; font-size: 1.5rem; font-weight: 400; }
-        .result-subtitle { font-size: 0.7rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
-        .result-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-        .result-field { background: var(--glass-light); border: 1px solid var(--border-faint); border-radius: 10px; padding: 12px 14px; }
-        .result-field.full { grid-column: span 2; }
-        .result-field-key { font-family: 'JetBrains Mono', monospace; font-size: 0.5rem; letter-spacing: 0.15em; color: var(--text-faint); display: block; margin-bottom: 4px; }
-        .result-field-val { font-size: 0.8rem; color: var(--text-high); font-weight: 500; }
-        .result-field-val.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; word-break: break-all; }
-        .result-blockchain { margin-top: 16px; padding: 14px; background: var(--glass-light); border-radius: 10px; border: 1px solid var(--border-faint); }
-        .result-blockchain-title { font-family: 'JetBrains Mono', monospace; font-size: 0.5rem; letter-spacing: 0.15em; color: var(--gold); margin-bottom: 6px; text-transform: uppercase; }
-        .transcript-section { margin-top: 24px; }
-        .transcript-section h4 { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; margin-bottom: 12px; }
-        .subject-grid { display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr; gap: 6px; padding: 8px 0; font-size: 0.7rem; }
-        .subject-grid.header { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.5rem; text-transform: uppercase; letter-spacing: 0.08em; border-bottom: 1px solid var(--border-faint); padding-bottom: 8px; margin-bottom: 4px; }
-        .subject-grid:not(.header) { border-bottom: 1px solid var(--border-faint); }
-        .subject-grid:not(.header):last-child { border-bottom: none; }
-        .loading-text { font-family: 'JetBrains Mono', monospace; font-size: 0.7rem; color: var(--text-muted); margin-top: 32px; }
-        .badge-record { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.55rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; margin-left: 8px; }
-        .badge-record.credential { background: rgba(46,204,140,0.1); color: var(--success); border: 1px solid rgba(46,204,140,0.2); }
-        .badge-record.transcript { background: rgba(212,175,55,0.1); color: var(--gold); border: 1px solid rgba(212,175,55,0.2); }
-        .tab-bar { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid var(--border-faint); }
-        .tab-bar button { padding: 10px 20px; border: none; background: none; color: var(--text-muted); font-family: inherit; font-size: 0.7rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
-        .tab-bar button.active { color: var(--gold); border-bottom-color: var(--gold); }
-        .batch-result { margin-top: 12px; }
-        .batch-result-item { display: flex; justify-content: space-between; padding: 8px 12px; border-bottom: 1px solid var(--border-faint); font-size: 0.7rem; }
-        .batch-result-item:last-child { border-bottom: none; }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Verification Portal · ACERVIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/void.css" />
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="assets/js/icons.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    body { background: var(--void); color: var(--text-high); }
+    .portal { min-height: 100vh; display: flex; flex-direction: column; align-items: center; padding: 100px 20px; }
+    .card { background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 20px; padding: 44px; width: 100%; max-width: 680px; }
+    .card.wide { max-width: 860px; }
+
+    .eyebrow { font-size: 0.55rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); text-transform: uppercase; letter-spacing: .15em; text-align: center; margin-bottom: 6px; }
+    h1 { font-family: 'Cormorant Garamond', serif; font-size: 2rem; font-weight: 400; text-align: center; margin: 0 0 8px; }
+    h1 em { color: var(--gold); font-style: italic; }
+    .sub { text-align: center; font-size: 0.8rem; color: var(--text-muted); margin-bottom: 28px; line-height: 1.6; }
+    .sub strong { color: var(--text-high); }
+
+    /* ── Tabs ── */
+    .tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 1px solid var(--border-faint); justify-content: center; }
+    .tabs button { padding: 10px 24px; border: none; background: none; color: var(--text-muted); font-family: inherit; font-size: 0.7rem; cursor: pointer; border-bottom: 2px solid transparent; transition: all .15s; }
+    .tabs button.active { color: var(--gold); border-bottom-color: var(--gold); }
+    .tab-pane { display: none; }
+    .tab-pane.active { display: block; }
+
+    /* ── Search Bar ── */
+    .search-bar { display: flex; align-items: center; border: 1px solid var(--border-muted); border-radius: 10px; overflow: hidden; background: var(--void); }
+    .search-bar .pfx { padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; color: var(--text-muted); background: var(--abyss); border-right: 1px solid var(--border-faint); }
+    .search-bar input { flex: 1; padding: 12px 16px; border: none; background: transparent; color: var(--text-high); font-family: 'JetBrains Mono', monospace; font-size: 0.8rem; }
+    .search-bar input:focus { outline: none; }
+    .search-bar button { padding: 12px 20px; border: none; background: var(--gold); color: #000; font-family: inherit; font-size: 0.7rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .search-bar button:hover { opacity: .85; }
+    .hint { text-align: center; font-size: 0.6rem; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; margin-top: 8px; }
+
+    /* ── Results ── */
+    .result { display: none; margin-top: 28px; border: 1px solid var(--border-subtle); border-radius: 16px; background: var(--abyss-raised); overflow: hidden; }
+    .result.visible { display: block; }
+    .result-hdr { display: flex; align-items: center; gap: 14px; padding: 22px 26px; border-bottom: 1px solid var(--border-faint); }
+    .result-hdr .ico { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; flex-shrink: 0; }
+    .result-hdr .ico svg { width: 22px; height: 22px; }
+    .result-hdr .rt { font-family: 'Cormorant Garamond', serif; font-size: 1.4rem; font-weight: 400; }
+    .result-hdr .rst { font-size: 0.65rem; color: var(--text-muted); font-family: 'JetBrains Mono', monospace; }
+
+    .result-bd { padding: 22px 26px; }
+    .r-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .r-field { background: var(--glass-light); border: 1px solid var(--border-faint); border-radius: 10px; padding: 12px 14px; }
+    .r-field.full { grid-column: span 2; }
+    .r-field .k { font-family: 'JetBrains Mono', monospace; font-size: 0.5rem; letter-spacing: .15em; color: var(--text-faint); display: block; margin-bottom: 3px; }
+    .r-field .v { font-size: 0.8rem; color: var(--text-high); font-weight: 500; }
+    .r-field .v.mono { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; word-break: break-all; }
+
+    .bc-box { margin-top: 14px; padding: 14px; background: var(--glass-light); border-radius: 10px; border: 1px solid var(--border-faint); }
+    .bc-box .bct { font-family: 'JetBrains Mono', monospace; font-size: 0.5rem; letter-spacing: .15em; color: var(--gold); text-transform: uppercase; margin-bottom: 6px; }
+
+    /* ── Subject Breakdown ── */
+    .sub-sec { margin-top: 20px; }
+    .sub-sec h4 { font-family: 'Cormorant Garamond', serif; font-size: 1rem; margin-bottom: 10px; }
+    .sub-grid { display: grid; grid-template-columns: 2fr 1.5fr 1fr 1fr 1fr; gap: 6px; padding: 8px 0; font-size: 0.65rem; }
+    .sub-grid.hdr { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.5rem; text-transform: uppercase; letter-spacing: .08em; border-bottom: 1px solid var(--border-faint); padding-bottom: 8px; }
+    .sub-grid:not(.hdr) { border-bottom: 1px solid var(--border-faint); }
+
+    .rt-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; margin-left: 6px; }
+    .rt-badge.cred { background: rgba(46,204,140,.1); color: var(--success); border: 1px solid rgba(46,204,140,.2); }
+    .rt-badge.trans { background: rgba(212,175,55,.1); color: var(--gold); border: 1px solid rgba(212,175,55,.2); }
+
+    /* ── Batch ── */
+    .dropzone { border: 2px dashed var(--border-muted); border-radius: 14px; padding: 36px 24px; text-align: center; cursor: pointer; transition: all .2s; background: var(--glass-light); }
+    .dropzone:hover { border-color: var(--gold); }
+    .dropzone svg { width: 32px; height: 32px; color: var(--gold); margin-bottom: 8px; }
+    .dropzone .lbl { font-size: 0.75rem; color: var(--text-mid); font-family: 'JetBrains Mono', monospace; }
+    .dropzone .hint { font-size: 0.55rem; color: var(--text-faint); margin-top: 4px; }
+
+    .batch-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border-faint); font-size: 0.65rem; }
+    .batch-item:last-child { border-bottom: none; }
+    .batch-state { font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; text-transform: uppercase; }
+
+    .loading { text-align: center; font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; color: var(--text-muted); margin-top: 24px; display: none; }
+
+    /* ── Status Colors ── */
+    .s-verified { color: var(--success); }
+    .s-revoked { color: var(--revoked); }
+    .s-suspended { color: #f1c40f; }
+    .s-tampered { color: #ff8f00; }
+    .s-notfound { color: var(--notfound); }
+    .s-error { color: var(--revoked); }
+
+    @media (max-width: 600px) { .card { padding: 28px 20px; } .r-grid { grid-template-columns: 1fr; } .r-field.full { grid-column: span 1; } }
+  </style>
 </head>
-<body class="bg-black text-white">
-    <div id="cursor-dot"></div>
-    <div id="cursor-ring"></div>
+<body>
+  <header id="nav">
+    <div class="nav-inner">
+      <a href="index.html" class="nav-logo">ACERVIS</a>
+      <div class="nav-links">
+        <a href="index.html" class="nav-link">Home</a>
+        <button onclick="if(window.toggleTheme) toggleTheme()" class="nav-link" style="font-size:1.1rem;cursor:pointer;background:none;border:none;padding:0;">🌓</button>
+      </div>
+      <a href="index.html" class="nav-cta">← Back</a>
+    </div>
+  </header>
 
-    <header id="nav">
-        <div class="nav-inner">
-            <a href="index.html" class="nav-logo">ACERVIS</a>
-            <div class="nav-links">
-                <a href="index.html" class="nav-link">Home</a>
-                <button onclick="toggleTheme()" class="nav-link" style="font-size:1.1rem;cursor:pointer;background:none;border:none;padding:0;">🌓</button>
-            </div>
-            <a href="index.html" class="nav-cta">← Back to Protocol</a>
+  <main class="portal">
+    <div class="card reveal">
+      <div class="eyebrow">Verification Engine v3.1</div>
+      <h1>Query the <em>Ledger</em></h1>
+      <p class="sub">Enter a <strong>Credential NCN</strong> or <strong>Transcript NCN</strong> to verify its authenticity. NCNs with <code>-T-</code> are transcript records.</p>
+
+      <div class="tabs">
+        <button class="active" data-tab="single">Single NCN</button>
+        <button data-tab="batch">Batch Verify</button>
+      </div>
+
+      <div class="tab-pane active" id="pane-single">
+        <div class="search-bar">
+          <span class="pfx">NCN</span>
+          <input type="text" id="ncn-input" placeholder="ADUN-2025-A3F8D9C2" maxlength="25" />
+          <button id="verify-btn">Verify →</button>
         </div>
-    </header>
+        <div class="hint">Credential: ADUN-2025-A3F8D9C2 &nbsp;·&nbsp; Transcript: ADUN-T-2025-B4E9F1A3</div>
+      </div>
 
-    <main class="portal-container">
-        <div class="portal-card reveal">
-            <div class="eyebrow eyebrow-center">Verification Engine v3.1</div>
-            <h1 class="section-title">Query the <em>Ledger</em></h1>
-            <p class="section-body" style="margin:16px auto;">Enter a <strong>Credential NCN</strong> or <strong>Transcript NCN</strong> to verify.</p>
-
-            <div class="tab-bar">
-                <button class="active" data-vtab="single">Single NCN</button>
-                <button data-vtab="batch">Batch Verify</button>
-            </div>
-
-            <!-- Single NCN Tab -->
-            <div class="vtab-content" id="vtab-single">
-                <div class="hero-ncn-bar" style="max-width:100%;margin-top:8px;">
-                    <span class="ncn-prefix">NCN</span>
-                    <input type="text" class="ncn-input" id="portal-input" placeholder="ADUN-2025-A3F8D9C2 or ADUN-T-2025-..." maxlength="25">
-                    <button class="ncn-verify-btn" id="portal-verify-btn">Verify →</button>
-                </div>
-                <span class="ncn-example-tag" style="margin-top:6px;">Credential: ADUN-2025-A3F8D9C2 · Transcript: ADUN-T-2025-B4E9F1A3</span>
-            </div>
-
-            <!-- Batch Verify Tab -->
-            <div class="vtab-content" id="vtab-batch" style="display:none;">
-                <p class="section-body" style="font-size:0.75rem;margin-bottom:16px;">Upload a CSV with a single <code>ncn</code> column to verify multiple records at once.</p>
-                <div class="drop-zone" id="batch-drop-zone" style="border:2px dashed var(--border-muted);border-radius:16px;padding:32px;text-align:center;cursor:pointer;">
-                    <p class="mono" style="font-size:0.8rem;">Drop CSV file here or click to browse</p>
-                    <p class="text-faint" style="font-size:0.6rem;margin-top:6px;">CSV must have a single column: ncn</p>
-                    <input type="file" id="batch-file-input" accept=".csv" style="display:none;">
-                </div>
-                <div id="batch-file-info" style="font-size:0.65rem;color:var(--text-muted);margin-top:8px;display:none;font-family:'JetBrains Mono',monospace;"></div>
-                <button class="btn btn-primary" id="batch-verify-btn" style="margin-top:12px;display:none;width:100%;">Verify All →</button>
-                <div id="batch-results" style="margin-top:16px;"></div>
-            </div>
-
-            <div id="loading-state" class="loading-text" style="display:none;">
-                <span>⟳ Querying Polygon Amoy node</span><span class="loading-dots"></span>
-            </div>
-            <div id="portal-result"></div>
+      <div class="tab-pane" id="pane-batch">
+        <p class="sub" style="text-align:left;font-size:0.7rem;">Upload a CSV with a single <code>ncn</code> column to verify multiple records at once.</p>
+        <div class="dropzone" id="batch-dropzone">
+          <script>document.write(Icons.upload)</script>
+          <div class="lbl">Drop CSV file or click to browse</div>
+          <div class="hint">CSV must have a single column: ncn</div>
+          <input type="file" id="batch-file" accept=".csv" style="display:none;" />
         </div>
-    </main>
+        <div id="batch-info" style="font-size:0.6rem;color:var(--text-muted);margin-top:8px;font-family:'JetBrains Mono',monospace;display:none;"></div>
+        <button class="btn btn-primary" id="batch-verify-btn" style="display:none;margin-top:12px;width:100%;">Verify All →</button>
+        <div id="batch-results" style="margin-top:14px;"></div>
+      </div>
 
-    <script src="assets/js/core.js"></script>
-    <script>
-    (function() {
-        // ── Tab switching ──
-        document.querySelectorAll('[data-vtab]').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('[data-vtab], .vtab-content').forEach(el => el.classList.remove('active'));
-                btn.classList.add('active');
-                document.getElementById('vtab-' + btn.dataset.vtab).classList.add('active');
-            });
-        });
+      <div class="loading" id="loading">⟳ Querying Polygon Amoy node<span id="loading-dots"></span></div>
+      <div id="result-container"></div>
+    </div>
+  </main>
 
-        // ── State colors ──
-        function getStateConfig(state, recordType) {
-            const rt = (recordType || '').toLowerCase();
-            const typeLabel = rt === 'transcript' ? 'Transcript' : 'Credential';
-            const configs = {
-                VERIFIED: {
-                    css:'verified', color:'var(--success)',
-                    icon:'<svg viewBox="0 0 32 32" fill="none" stroke="var(--success)" stroke-width="2"><path d="M16 4l10 6v12L16 28 6 22V10L16 4z"/><path d="M11 16l3.5 3.5L21 12"/></svg>',
-                    title: typeLabel + ' Verified',
-                    subtitle: '// STATE: VERIFIED — Blockchain hash matches computed digest'
-                },
-                SUSPENDED: {
-                    css:'suspended', color:'#FFC107',
-                    icon:'<svg viewBox="0 0 32 32" fill="none" stroke="#FFC107" stroke-width="2"><path d="M16 6l10 18H6L16 6z"/><circle cx="16" cy="22" r="1.5" fill="#FFC107"/><path d="M16 12v6"/></svg>',
-                    title: typeLabel + ' Suspended',
-                    subtitle: '// STATE: SUSPENDED — Pending re-verification'
-                },
-                REVOKED: {
-                    css:'revoked', color:'var(--revoked)',
-                    icon:'<svg viewBox="0 0 32 32" fill="none" stroke="var(--revoked)" stroke-width="2"><circle cx="16" cy="16" r="10"/><path d="M12 12l8 8M20 12l-8 8"/></svg>',
-                    title: typeLabel + ' Revoked',
-                    subtitle: '// STATE: REVOKED — Rescinded by issuing institution'
-                },
-                TAMPERED: {
-                    css:'tampered', color:'var(--tampered)',
-                    icon:'<svg viewBox="0 0 32 32" fill="none" stroke="var(--tampered)" stroke-width="2"><path d="M16 6l10 18H6L16 6z"/><path d="M16 14v5M16 22v1"/></svg>',
-                    title: 'Integrity Failure',
-                    subtitle: '// STATE: TAMPERED — Metadata does not produce the anchored hash'
-                },
-                NOT_FOUND: {
-                    css:'notfound', color:'var(--notfound)',
-                    icon:'<svg viewBox="0 0 32 32" fill="none" stroke="var(--notfound)" stroke-width="2"><circle cx="14" cy="14" r="8"/><path d="M20 20l6 6"/></svg>',
-                    title: 'Record Not Found',
-                    subtitle: '// STATE: NOT_FOUND — NCN not registered on ACERVIS ledger'
-                }
-            };
-            return configs[state] || configs.NOT_FOUND;
+  <script src="assets/js/core.js"></script>
+  <script>
+  (function() {
+    // ── Tab switching ──
+    document.querySelectorAll('[data-tab]').forEach(b => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('[data-tab],.tab-pane').forEach(el => el.classList.remove('active'));
+        b.classList.add('active');
+        document.getElementById('pane-'+b.dataset.tab).classList.add('active');
+      });
+    });
+
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+    const STATES = {
+      VERIFIED: {css:'s-verified', bg:'rgba(46,204,140,.12)', bd:'rgba(46,204,140,.3)', icon:'<svg viewBox="0 0 32 32" fill="none" stroke="var(--success)" stroke-width="2"><path d="M16 4l10 6v12L16 28 6 22V10 16z"/><path d="M11 16l3.5 3.5L21 12"/></svg>' },
+      SUSPENDED: {css:'s-suspended', bg:'rgba(255,193,7,.12)', bd:'rgba(255,193,7,.3)', icon:'<svg viewBox="0 0 32 32" fill="none" stroke="#f1c40f" stroke-width="2"><path d="M16 6l10 18H6 16z"/><circle cx="16" cy="22" r="1.5"/><path d="M16 12v6"/></svg>' },
+      REVOKED: {css:'s-revoked', bg:'rgba(229,57,53,.12)', bd:'rgba(229,57,53,.3)', icon:'<svg viewBox="0 0 32 32" fill="none" stroke="var(--revoked)" stroke-width="2"><circle cx="16" cy="16" r="10"/><path d="M12 12l8 8M20 12l-8 8"/></svg>' },
+      TAMPERED: {css:'s-tampered', bg:'rgba(255,143,0,.12)', bd:'rgba(255,143,0,.3)', icon:'<svg viewBox="0 0 32 32" fill="none" stroke="#ff8f00" stroke-width="2"><path d="M16 6l10 18H6 16z"/><path d="M16 14v5M16 22v1"/></svg>' },
+      NOT_FOUND: {css:'s-notfound', bg:'rgba(84,110,138,.12)', bd:'rgba(84,110,138,.3)', icon:'<svg viewBox="0 0 32 32" fill="none" stroke="var(--notfound)" stroke-width="2"><circle cx="14" cy="14" r="8"/><path d="M20 20l6 6"/></svg>' }
+    };
+
+    function getStateCfg(state, isTranscript) {
+      const base = STATES[state] || STATES.NOT_FOUND;
+      const typeLabel = isTranscript ? 'Transcript' : 'Credential';
+      const titles = { VERIFIED: typeLabel+' Verified', SUSPENDED: typeLabel+' Suspended', REVOKED: typeLabel+' Revoked', TAMPERED:'Integrity Failure', NOT_FOUND:'Record Not Found' };
+      const sub = { VERIFIED:'Blockchain hash matches computed digest', SUSPENDED:'Pending re-verification by institution', REVOKED:'Rescinded by issuing institution', TAMPERED:'Metadata does not produce the anchored hash', NOT_FOUND:'NCN not registered on ACERVIS ledger' };
+      return { ...base, title: titles[state]||'Unknown', subtitle: sub[state]||'' };
+    }
+
+    function showResult(data) {
+      const loading = document.getElementById('loading'), container = document.getElementById('result-container');
+      loading.style.display = 'none';
+
+      const state = data.state || 'NOT_FOUND';
+      const meta = data.metadata || {};
+      const subjects = data.subjects || [];
+      const bc = data.blockchain || {};
+      const isTranscript = (meta.ncn||'').includes('-T-');
+      const cfg = getStateCfg(state, isTranscript);
+
+      let html = `<div class="result visible" style="border-color:${cfg.bd};">`;
+      html += `<div class="result-hdr"><div class="ico" style="background:${cfg.bg};border:1.5px solid ${cfg.bd};">${cfg.icon}</div><div><div class="rt">${cfg.title}</div><div class="rst">// ${cfg.subtitle}</div></div></div>`;
+
+      if (state !== 'NOT_FOUND') {
+        html += `<div class="result-bd"><div class="r-grid">
+          <div class="r-field"><span class="k">STUDENT NAME</span><span class="v">${esc(meta.student_name||'—')}</span></div>
+          <div class="r-field"><span class="k">INSTITUTION</span><span class="v">${esc(meta.institution_name||'—')}</span></div>
+          <div class="r-field"><span class="k">DEGREE</span><span class="v">${esc(meta.degree_type||'—')} · ${esc(meta.course_name||'—')}</span></div>
+          <div class="r-field"><span class="k">MATRIC NUMBER</span><span class="v mono">${esc(meta.matric_number||'—')}</span></div>
+          <div class="r-field"><span class="k">YEAR</span><span class="v">${meta.grad_year||meta.graduation_year||'—'}</span></div>
+          <div class="r-field"><span class="k">NCN</span><span class="v mono">${esc(meta.ncn||'—')}</span></div>
+          ${isTranscript ? `<div class="r-field"><span class="k">CGPA</span><span class="v">${meta.cgpa||'—'}</span></div><div class="r-field"><span class="k">TOTAL CREDITS</span><span class="v">${meta.total_credits||0}</span></div>` : ''}
+          <div class="r-field full"><span class="k">INTEGRITY</span><span class="v" style="color:${data.integrity_check==='PASSED'?'var(--success)':'var(--revoked)'};">${data.integrity_check==='PASSED' ? '✓ Hash matches on-chain record' : '✗ Data tampering detected'}</span></div>
+        </div>`;
+
+        // Subjects
+        if (subjects.length) {
+          html += `<div class="sub-sec"><h4>Academic Record</h4><div class="sub-grid hdr"><span>Course Code</span><span>Title</span><span>Credits</span><span>Score</span><span>Grade</span></div>`;
+          subjects.forEach(s => { html += `<div class="sub-grid"><span class="mono">${esc(s.course_code)}</span><span>${esc(s.course_title)}</span><span>${s.credit_units}</span><span>${s.score}</span><span><strong>${esc(s.grade)}</strong></span></div>`; });
+          html += `</div>`;
         }
 
-        function escape(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
-
-        function displayResult(data) {
-            const container = document.getElementById('portal-result');
-            const loading = document.getElementById('loading-state');
-            loading.style.display = 'none';
-
-            const state = data.state || 'NOT_FOUND';
-            const cfg = getStateConfig(state, data.metadata?.record_type);
-            const meta = data.metadata || {};
-            const bc = data.blockchain || {};
-            const subjects = data.subjects || [];
-            const integrityOk = data.integrity_check === 'PASSED';
-
-            let fieldsHtml = '';
-            if (state !== 'NOT_FOUND') {
-                // Detect if this is a credential or transcript from the NCN prefix
-                const isTranscript = (meta.ncn || '').includes('-T-');
-
-                fieldsHtml = `
-                    <div class="result-grid">
-                        <div class="result-field"><span class="result-field-key">// STUDENT NAME</span><span class="result-field-val">${escape(meta.student_name || '—')}</span></div>
-                        <div class="result-field"><span class="result-field-key">// INSTITUTION</span><span class="result-field-val">${escape(meta.institution_name || '—')}</span></div>
-                        <div class="result-field"><span class="result-field-key">// DEGREE</span><span class="result-field-val">${escape(meta.degree_type || '—')} · ${escape(meta.course_name || '—')}</span></div>
-                        <div class="result-field"><span class="result-field-key">// MATRIC NUMBER</span><span class="result-field-val mono">${escape(meta.matric_number || '—')}</span></div>
-                        <div class="result-field"><span class="result-field-key">// GRADUATION YEAR</span><span class="result-field-val">${meta.grad_year || meta.graduation_year || '—'}</span></div>
-                        <div class="result-field"><span class="result-field-key">// NCN</span><span class="result-field-val mono">${escape(meta.ncn || '—')}</span></div>
-                        ${isTranscript ? `
-                        <div class="result-field"><span class="result-field-key">// CGPA</span><span class="result-field-val">${meta.cgpa || '—'}</span></div>
-                        <div class="result-field"><span class="result-field-key">// TOTAL CREDITS</span><span class="result-field-val">${meta.total_credits || 0}</span></div>
-                        ` : ''}
-                        <div class="result-field full">
-                            <span class="result-field-key">// INTEGRITY CHECK</span>
-                            <span class="result-field-val" style="color:${integrityOk ? 'var(--success)' : 'var(--revoked)'};">${integrityOk ? '✓ PASSED — Hash matches on-chain record' : '✗ FAILED — Data tampering detected'}</span>
-                        </div>
-                    </div>
-                `;
-            }
-
-            // Subject breakdown for transcripts
-            let subjectsHtml = '';
-            if (subjects.length > 0) {
-                subjectsHtml = `
-                    <div class="transcript-section">
-                        <h4>Academic Record <span class="badge-record transcript">Transcript</span></h4>
-                        <div class="subject-grid header">
-                            <span>Course Code</span><span>Course Title</span><span>Credits</span><span>Score</span><span>Grade</span>
-                        </div>
-                        ${subjects.map(s => `
-                        <div class="subject-grid">
-                            <span class="mono">${escape(s.course_code)}</span>
-                            <span>${escape(s.course_title)}</span>
-                            <span>${s.credit_units}</span>
-                            <span>${s.score}</span>
-                            <span><strong style="color:${getGradeColor(s.grade)}">${escape(s.grade)}</strong></span>
-                        </div>`).join('')}
-                    </div>
-                `;
-            }
-
-            let bcHtml = '';
-            if (bc.anchoredAt || data.tx_hash) {
-                bcHtml = `
-                    <div class="result-blockchain">
-                        <div class="result-blockchain-title">◈ POLYGON AMOY PROOF</div>
-                        <div class="result-grid" style="margin-top:6px;">
-                            <div class="result-field"><span class="result-field-key">// ANCHORED AT</span><span class="result-field-val mono">${bc.anchoredAt ? new Date(bc.anchoredAt * 1000).toLocaleString() : '—'}</span></div>
-                            <div class="result-field"><span class="result-field-key">// ISSUED BY</span><span class="result-field-val mono">${bc.issuedBy ? bc.issuedBy.slice(0,10) + '...' + bc.issuedBy.slice(-6) : '—'}</span></div>
-                            ${data.tx_hash ? `<div class="result-field full"><span class="result-field-key">// TX HASH</span><span class="result-field-val mono" style="font-size:0.55rem;">${escape(data.tx_hash)}</span></div>` : ''}
-                        </div>
-                    </div>
-                `;
-            }
-
-            container.innerHTML = `
-                <div class="result-card visible ${cfg.css}">
-                    <div class="result-header">
-                        <div class="result-icon" style="background:${cfg.color}1a;border:1.5px solid ${cfg.color}4d;"><div style="color:${cfg.color}">${cfg.icon}</div></div>
-                        <div>
-                            <div class="result-title">${cfg.title}</div>
-                            <div class="result-subtitle">${cfg.subtitle}</div>
-                        </div>
-                    </div>
-                    ${fieldsHtml}
-                    ${subjectsHtml}
-                    ${bcHtml}
-                </div>
-            `;
+        // Blockchain
+        if (bc.anchoredAt || data.tx_hash) {
+          html += `<div class="bc-box"><div class="bct">◈ POLYGON AMOY PROOF</div><div class="r-grid" style="margin-top:4px;">
+            <div class="r-field"><span class="k">ANCHORED AT</span><span class="v mono">${bc.anchoredAt ? new Date(bc.anchoredAt*1000).toLocaleString() : '—'}</span></div>
+            <div class="r-field"><span class="k">ISSUED BY</span><span class="v mono">${bc.issuedBy ? bc.issuedBy.slice(0,10)+'…'+bc.issuedBy.slice(-6) : '—'}</span></div>
+            ${data.tx_hash ? `<div class="r-field full"><span class="k">TX HASH</span><span class="v mono" style="font-size:0.55rem;">${esc(data.tx_hash)}</span></div>` : ''}
+          </div></div>`;
         }
 
-        function getGradeColor(grade) {
-            const map = { 'A':'var(--success)','B':'#2ECC8C','C':'var(--gold)','D':'#FF8F00','E':'#FF8F00','F':'var(--revoked)' };
-            return map[grade] || 'var(--text-mid)';
-        }
+        html += `</div>`;
+      }
 
-        // ── Single Verification ──
-        function startVerification(ncn) {
-            const loading = document.getElementById('loading-state');
-            const container = document.getElementById('portal-result');
-            const input = document.getElementById('portal-input');
-            const btn = document.getElementById('portal-verify-btn');
+      html += `</div>`;
+      container.innerHTML = html;
+    }
 
-            const query = ncn || input.value.trim();
-            if (query.length < 5) return;
-            if (ncn) input.value = ncn;
+    // ── Single Verification ──
+    function verify(input) {
+      const loading = document.getElementById('loading'), container = document.getElementById('result-container'), btn = document.getElementById('verify-btn');
+      const ncn = input || document.getElementById('ncn-input').value.trim();
+      if (ncn.length < 5) return;
+      if (input) document.getElementById('ncn-input').value = ncn;
 
-            btn.disabled = true; btn.textContent = '⟳ Verifying...';
-            container.innerHTML = ''; loading.style.display = 'block';
+      btn.disabled = true; btn.textContent = '⟳ Verifying…';
+      container.innerHTML = ''; loading.style.display = 'block';
 
-            fetch('/api/v1/verify?ncn=' + encodeURIComponent(query))
-                .then(res => res.json())
-                .then(data => displayResult(data))
-                .catch(err => {
-                    loading.style.display = 'none';
-                    container.innerHTML = `
-                        <div class="result-card visible error">
-                            <div class="result-header">
-                                <div class="result-icon" style="background:rgba(229,57,53,0.12);border:1.5px solid rgba(229,57,53,0.3);">
-                                    <svg viewBox="0 0 32 32" fill="none" stroke="var(--revoked)" stroke-width="2" style="width:24px;height:24px;"><circle cx="16" cy="16" r="10"/><path d="M12 12l8 8M20 12l-8 8"/></svg>
-                                </div>
-                                <div><div class="result-title">Connection Error</div><div class="result-subtitle">// Unable to reach verification node</div></div>
-                            </div>
-                            <p style="color:var(--text-muted);font-size:0.75rem;">${escape(err.message)}</p>
-                        </div>`;
-                })
-                .finally(() => { btn.disabled = false; btn.textContent = 'Verify →'; });
-        }
+      fetch('/api/v1/verify?ncn='+encodeURIComponent(ncn))
+        .then(r => r.json())
+        .then(d => showResult(d))
+        .catch(e => {
+          loading.style.display = 'none';
+          container.innerHTML = `<div class="result visible" style="border-color:rgba(229,57,53,.3);"><div class="result-hdr"><div class="ico" style="background:rgba(229,57,53,.12);border:1.5px solid rgba(229,57,53,.3);"><svg viewBox="0 0 32 32" fill="none" stroke="var(--revoked)" stroke-width="2" style="width:22px;height:22px;"><circle cx="16" cy="16" r="10"/><path d="M12 12l8 8M20 12l-8 8"/></svg></div><div><div class="rt">Connection Error</div><div class="rst">// Unable to reach verification node</div></div></div><div class="result-bd"><p style="color:var(--text-muted);font-size:0.7rem;">${esc(e.message)}</p></div></div>`;
+        })
+        .finally(() => { btn.disabled = false; btn.textContent = 'Verify →'; });
+    }
 
-        // ── Batch Verification ──
-        const batchDrop = document.getElementById('batch-drop-zone');
-        const batchInput = document.getElementById('batch-file-input');
-        let batchNcns = [];
+    document.getElementById('verify-btn').addEventListener('click', () => verify());
+    document.getElementById('ncn-input').addEventListener('keydown', e => { if (e.key === 'Enter') verify(); });
 
-        batchDrop.addEventListener('click', () => batchInput.click());
-        batchDrop.addEventListener('dragover', e => { e.preventDefault(); batchDrop.classList.add('dragover'); });
-        batchDrop.addEventListener('dragleave', () => batchDrop.classList.remove('dragover'));
-        batchDrop.addEventListener('drop', e => { e.preventDefault(); batchDrop.classList.remove('dragover'); if (e.dataTransfer.files[0]) handleBatchFile(e.dataTransfer.files[0]); });
-        batchInput.addEventListener('change', e => { if (e.target.files[0]) handleBatchFile(e.target.files[0]); });
+    // Auto-verify from URL
+    document.addEventListener('DOMContentLoaded', () => {
+      const ncn = new URLSearchParams(window.location.search).get('ncn');
+      if (ncn && ncn.trim().length > 3) setTimeout(() => verify(ncn.trim()), 600);
+    });
 
-        function handleBatchFile(file) {
-            if (!file.name.endsWith('.csv')) { alert('Please upload a CSV.'); return; }
-            const reader = new FileReader();
-            reader.onload = function(ev) {
-                const parsed = Papa.parse(ev.target.result.trim(), { header: true, skipEmptyLines: true });
-                batchNcns = parsed.data.map(r => (r.ncn || '').trim()).filter(Boolean);
-                if (batchNcns.length === 0) { alert('No NCNs found in CSV. Ensure the column is named "ncn".'); return; }
-                document.getElementById('batch-file-info').style.display = 'block';
-                document.getElementById('batch-file-info').textContent = `📄 ${batchNcns.length} NCN(s) loaded`;
-                document.getElementById('batch-verify-btn').style.display = 'block';
-            };
-            reader.readAsText(file);
-        }
+    // ── Batch Verify ──
+    const bdz = document.getElementById('batch-dropzone'), bf = document.getElementById('batch-file');
+    let batchNcns = [];
 
-        document.getElementById('batch-verify-btn').addEventListener('click', async () => {
-            if (batchNcns.length === 0) return;
-            const btn = document.getElementById('batch-verify-btn');
-            const resultsDiv = document.getElementById('batch-results');
-            btn.disabled = true; btn.textContent = '⟳ Verifying...';
-            resultsDiv.innerHTML = '<p style="color:var(--text-muted);font-size:0.7rem;">Verifying ' + batchNcns.length + ' NCNs...</p>';
+    bdz.addEventListener('click', () => bf.click());
+    bdz.addEventListener('dragover', e => { e.preventDefault(); bdz.classList.add('dragover'); });
+    bdz.addEventListener('dragleave', () => bdz.classList.remove('dragover'));
+    bdz.addEventListener('drop', e => { e.preventDefault(); bdz.classList.remove('dragover'); if (e.dataTransfer.files[0]) loadBatch(e.dataTransfer.files[0]); });
+    bf.addEventListener('change', e => { if (e.target.files[0]) loadBatch(e.target.files[0]); });
 
-            const results = [];
-            for (const ncn of batchNcns) {
-                try {
-                    const res = await fetch('/api/v1/verify?ncn=' + encodeURIComponent(ncn));
-                    const data = await res.json();
-                    results.push({ ncn, state: data.state, name: data.metadata?.student_name || '—' });
-                } catch(e) {
-                    results.push({ ncn, state: 'ERROR', name: e.message });
-                }
-            }
+    function loadBatch(file) {
+      if (!file.name.endsWith('.csv')) { alert('Upload a CSV.'); return; }
+      const r = new FileReader();
+      r.onload = function(ev) {
+        const p = Papa.parse(ev.target.result.trim(), { header: true, skipEmptyLines: true });
+        batchNcns = p.data.map(r => (r.ncn||'').trim()).filter(Boolean);
+        if (!batchNcns.length) { alert('No NCNs found. Ensure column is named "ncn".'); return; }
+        document.getElementById('batch-info').style.display = 'block';
+        document.getElementById('batch-info').textContent = `📄 ${batchNcns.length} NCN(s) loaded`;
+        document.getElementById('batch-verify-btn').style.display = 'block';
+      };
+      r.readAsText(file);
+    }
 
-            const verified = results.filter(r => r.state === 'VERIFIED').length;
-            const failed = results.filter(r => r.state !== 'VERIFIED').length;
-            const stateColors = { VERIFIED:'var(--success)', SUSPENDED:'#FFC107', REVOKED:'var(--revoked)', TAMPERED:'var(--tampered)', NOT_FOUND:'var(--notfound)', ERROR:'var(--revoked)' };
+    document.getElementById('batch-verify-btn').addEventListener('click', async () => {
+      if (!batchNcns.length) return;
+      const btn = document.getElementById('batch-verify-btn'), resultsDiv = document.getElementById('batch-results');
+      btn.disabled = true; btn.textContent = '⟳ Verifying…';
+      resultsDiv.innerHTML = '<p style="color:var(--text-muted);font-size:0.65rem;">Verifying…</p>';
 
-            resultsDiv.innerHTML = `
-                <div style="padding:16px;background:var(--abyss-raised);border:1px solid var(--border-subtle);border-radius:12px;">
-                    <p style="font-size:0.75rem;margin-bottom:8px;">Batch Results — ${verified} verified, ${failed} other</p>
-                    ${results.map(r => `
-                        <div class="batch-result-item">
-                            <span class="mono" style="font-size:0.6rem;">${escape(r.ncn)}</span>
-                            <span style="font-size:0.6rem;color:${stateColors[r.state] || 'var(--text-muted)'};">${r.state}</span>
-                            <span style="font-size:0.6rem;color:var(--text-faint);">${escape(r.name)}</span>
-                        </div>
-                    `).join('')}
-                </div>
-            `;
+      const results = [];
+      for (const ncn of batchNcns) {
+        try {
+          const r = await fetch('/api/v1/verify?ncn='+encodeURIComponent(ncn));
+          const d = await r.json();
+          results.push({ ncn, state: d.state, name: d.metadata?.student_name || '—' });
+        } catch(e) { results.push({ ncn, state: 'ERROR', name: e.message }); }
+      }
 
-            btn.disabled = false; btn.textContent = 'Verify All →';
-        });
+      const verified = results.filter(r => r.state === 'VERIFIED').length;
+      resultsDiv.innerHTML = `<div style="padding:16px;background:var(--abyss-raised);border:1px solid var(--border-subtle);border-radius:12px;">
+        <p style="font-size:0.7rem;margin-bottom:12px;"><strong>${results.length}</strong> results — <span class="s-verified">${verified} verified</span>, ${results.length - verified} other</p>
+        ${results.map(r => `<div class="batch-item"><span class="mono">${esc(r.ncn)}</span><span class="batch-state s-${r.state.toLowerCase()}">${r.state}</span><span style="font-size:0.6rem;color:var(--text-faint);">${esc(r.name)}</span></div>`).join('')}
+      </div>`;
 
-        // ── Event Bindings ──
-        document.getElementById('portal-verify-btn').addEventListener('click', () => startVerification());
-        document.getElementById('portal-input').addEventListener('keydown', e => { if (e.key === 'Enter') startVerification(); });
-
-        // Auto-verify from URL params
-        document.addEventListener('DOMContentLoaded', () => {
-            const params = new URLSearchParams(window.location.search);
-            const ncn = params.get('ncn');
-            if (ncn && ncn.trim().length > 3) setTimeout(() => startVerification(ncn.trim()), 600);
-        });
-    })();
-    </script>
+      btn.disabled = false; btn.textContent = 'Verify All →';
+    });
+  })();
+  </script>
 </body>
 </html>

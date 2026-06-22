@@ -16,9 +16,9 @@
     "papaparse": "^5.4.1"
   },
   "devDependencies": {
-    "@nomicfoundation/hardhat-toolbox": "^5.0.0",
-    "hardhat": "^2.22.5",
-    "serve": "^14.2.3",
-    "dotenv": "^16.4.5"
+    "@nomicfoundation/hardhat-toolbox": "^7.0.0",
+    "dotenv": "^16.4.5",
+    "hardhat": "^3.9.0",
+    "serve": "^14.2.3"
   }
 }

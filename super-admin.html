@@ -1,400 +1,361 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Admin | ACERVIS Protocol Governance</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="assets/css/void.css">
-    <style>
-        :root { --sidebar-w: 260px; }
-        .admin-grid { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; }
-        .sidebar { background: var(--abyss); border-right: 1px solid var(--border-subtle); padding: 32px 20px; display: flex; flex-direction: column; gap: 24px; position: fixed; width: var(--sidebar-w); height: 100vh; z-index: 10; }
-        .main-content { margin-left: var(--sidebar-w); padding: 48px; background: var(--void); overflow-y: auto; min-height: 100vh; }
-        .sidebar .nav-logo { font-size: 1.2rem; }
-        .nav-tab { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 10px; cursor: pointer; font-size: 0.75rem; color: var(--text-mid); transition: all 0.2s; border: none; background: none; width: 100%; text-align: left; font-family: inherit; }
-        .nav-tab:hover { background: var(--glass-light); color: var(--text-high); }
-        .nav-tab.active { background: var(--gold-glow-sm); color: var(--gold); border: 1px solid var(--border-gold); }
-        .tab-content { display: none; }
-        .tab-content.active { display: block; }
-        .stat-card-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 32px; }
-        .stat-card { background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 20px; }
-        .stat-card .stat-label { display: block; font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
-        .stat-card .stat-num { font-size: 1.8rem; font-weight: 600; font-family: 'Cormorant Garamond', serif; }
-        .table-wrap { margin-top: 24px; background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; }
-        .table-wrap h3 { padding: 20px 24px 0; font-size: 1rem; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
-        th { background: var(--abyss); text-align: left; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
-        td { padding: 12px 16px; border-top: 1px solid var(--border-faint); color: var(--text-mid); }
-        td .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; }
-        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.55rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; }
-        .badge.active { background: rgba(46,204,140,0.12); color: var(--success); border: 1px solid rgba(46,204,140,0.25); }
-        .badge.inactive { background: rgba(229,57,53,0.12); color: var(--revoked); border: 1px solid rgba(229,57,53,0.25); }
-        .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
-        .toolbar input, .toolbar select { background: var(--abyss-raised); border: 1px solid var(--border-muted); padding: 8px 12px; border-radius: 8px; color: white; font-size: 0.75rem; font-family: inherit; }
-        .toolbar input:focus, .toolbar select:focus { border-color: var(--gold); outline: none; }
-        .search-input { min-width: 200px; }
-        .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; padding: 16px; font-size: 0.7rem; color: var(--text-muted); }
-        .pagination button { background: var(--abyss); border: 1px solid var(--border-faint); padding: 6px 14px; border-radius: 6px; color: var(--text-mid); cursor: pointer; font-size: 0.65rem; }
-        .pagination button:disabled { opacity: 0.3; cursor: default; }
-        .inline-form { background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 28px; max-width: 640px; margin-top: 24px; }
-        .form-group { margin-bottom: 16px; }
-        .form-group label { display: block; font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
-        .form-group input, .form-group select { width: 100%; background: var(--void); border: 1px solid var(--border-muted); padding: 10px 12px; border-radius: 8px; color: white; font-family: inherit; font-size: 0.8rem; }
-        .form-group input:focus, .form-group select:focus { border-color: var(--gold); outline: none; }
-        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .token-display { background: var(--void); border: 1px solid var(--border-gold); border-radius: 10px; padding: 16px; margin-top: 16px; font-family: 'JetBrains Mono', monospace; font-size: 1rem; text-align: center; letter-spacing: 0.2em; color: var(--gold); display: none; }
-        .token-display.visible { display: block; }
-        .token-display .tlabel { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px; }
-        .response-msg { font-size: 0.7rem; margin-top: 10px; padding: 10px; border-radius: 8px; display: none; }
-        .response-msg.visible { display: block; }
-        .response-msg.success { background: rgba(46,204,140,0.1); color: var(--success); border: 1px solid rgba(46,204,140,0.2); }
-        .response-msg.error { background: rgba(229,57,53,0.1); color: var(--revoked); border: 1px solid rgba(229,57,53,0.2); }
-        @media (max-width: 768px) { :root { --sidebar-w: 0px; } .sidebar { display: none; } .main-content { margin-left: 0; padding: 24px; } }
-    </style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Governance Console · ACERVIS</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Montserrat:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="assets/css/void.css" />
+  <script src="assets/js/icons.js"></script>
+  <style>
+    * { box-sizing: border-box; }
+    .app { display: flex; min-height: 100vh; background: var(--void); }
+    .sidebar { width: 240px; flex-shrink: 0; background: var(--abyss); border-right: 1px solid var(--border-subtle); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; }
+    .sidebar-head { padding: 24px 20px 16px; border-bottom: 1px solid var(--border-faint); }
+    .sidebar-head .logo { font-family: 'Cormorant Garamond', serif; font-size: 1.1rem; letter-spacing: .08em; color: var(--gold); }
+    .sidebar-head .sub { font-size: 0.55rem; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; margin-top: 2px; text-transform: uppercase; letter-spacing: .08em; }
+    .sidebar-nav { flex: 1; padding: 12px 10px; display: flex; flex-direction: column; gap: 2px; }
+    .nav-btn { display: flex; align-items: center; gap: 10px; width: 100%; padding: 10px 14px; border-radius: 8px; border: none; background: none; color: var(--text-mid); font-size: 0.75rem; font-family: inherit; cursor: pointer; transition: all .15s; text-align: left; }
+    .nav-btn:hover { background: var(--glass-light); color: var(--text-high); }
+    .nav-btn.active { background: var(--gold-glow-sm); color: var(--gold); border: 1px solid var(--border-gold); }
+    .nav-btn svg { width: 18px; height: 18px; flex-shrink: 0; }
+    .sidebar-foot { padding: 16px 20px; border-top: 1px solid var(--border-faint); font-size: 0.55rem; font-family: 'JetBrains Mono', monospace; color: var(--text-faint); }
+
+    .main { flex: 1; min-width: 0; padding: 36px 44px; overflow-y: auto; }
+    .tab-content { display: none; }
+    .tab-content.active { display: block; }
+
+    .page-hdr { margin-bottom: 28px; }
+    .page-hdr .eyebrow { font-size: 0.6rem; font-family: 'JetBrains Mono', monospace; color: var(--text-muted); text-transform: uppercase; letter-spacing: .12em; margin-bottom: 4px; }
+    .page-hdr h1 { font-family: 'Cormorant Garamond', serif; font-size: 1.8rem; font-weight: 400; color: var(--text-high); margin: 0; }
+    .page-hdr h1 em { color: var(--gold); font-style: italic; }
+    .page-hdr p { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; line-height: 1.6; }
+
+    .stat-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(155px, 1fr)); gap: 12px; margin-bottom: 24px; }
+    .stat-card { padding: 18px; background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 12px; }
+    .stat-card .lbl { font-size: 0.5rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .1em; font-family: 'JetBrains Mono', monospace; margin-bottom: 4px; }
+    .stat-card .val { font-size: 1.6rem; font-weight: 600; font-family: 'Cormorant Garamond', serif; color: var(--text-high); line-height: 1; }
+    .stat-card .val.gold { color: var(--gold); }
+
+    .card { background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 12px; }
+    .card-hdr { padding: 18px 22px 0; font-size: 0.9rem; font-family: 'Cormorant Garamond', serif; color: var(--text-high); }
+    .card-bd { padding: 18px 22px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+
+    .btn { display: inline-flex; align-items: center; gap: 8px; padding: 9px 18px; border-radius: 8px; font-size: 0.75rem; font-family: inherit; font-weight: 500; cursor: pointer; transition: all .15s; border: 1px solid transparent; text-decoration: none; }
+    .btn:disabled { opacity: .4; cursor: default; }
+    .btn-primary { background: var(--gold); color: #000; border-color: var(--gold); }
+    .btn-primary:hover:not(:disabled) { opacity: .85; }
+    .btn-secondary { background: var(--glass-light); color: var(--text-high); border-color: var(--border-muted); }
+    .btn-secondary:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+    .btn-ghost { background: transparent; color: var(--text-mid); border-color: transparent; }
+    .btn-ghost:hover:not(:disabled) { background: var(--glass-light); color: var(--text-high); }
+    .btn-danger { background: rgba(229,57,53,.12); color: var(--revoked); border-color: rgba(229,57,53,.25); }
+    .btn-sm { padding: 6px 12px; font-size: 0.65rem; }
+    .btn-group { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+    .toolbar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+    .toolbar input, .toolbar select { background: var(--abyss-raised); border: 1px solid var(--border-muted); padding: 8px 12px; border-radius: 8px; color: var(--text-high); font-size: 0.75rem; font-family: inherit; }
+    .toolbar input:focus, .toolbar select:focus { border-color: var(--gold); outline: none; }
+    .toolbar input { min-width: 200px; }
+
+    .tbl-wrap { overflow-x: auto; border-radius: 12px; border: 1px solid var(--border-subtle); background: var(--abyss-raised); }
+    table { width: 100%; border-collapse: collapse; font-size: 0.72rem; }
+    thead { border-bottom: 1px solid var(--border-faint); }
+    th { padding: 11px 14px; text-align: left; font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .08em; font-weight: 400; background: var(--abyss); white-space: nowrap; }
+    td { padding: 11px 14px; border-top: 1px solid var(--border-faint); color: var(--text-mid); }
+    tbody tr:hover { background: var(--glass-light); }
+    td .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; }
+
+    .badge { display: inline-flex; align-items: center; padding: 3px 10px; border-radius: 20px; font-size: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: .06em; border: 1px solid transparent; }
+    .badge.active { background: rgba(46,204,140,.12); color: var(--success); border-color: rgba(46,204,140,.25); }
+    .badge.inactive { background: rgba(229,57,53,.12); color: var(--revoked); border-color: rgba(229,57,53,.25); }
+
+    .pagination { display: flex; gap: 6px; align-items: center; justify-content: center; padding: 14px; font-size: 0.65rem; color: var(--text-muted); }
+    .pagination button { padding: 5px 12px; border-radius: 6px; border: 1px solid var(--border-faint); background: var(--abyss); color: var(--text-mid); cursor: pointer; font-size: 0.6rem; font-family: inherit; }
+    .pagination button:disabled { opacity: .3; cursor: default; }
+    .pagination button:hover:not(:disabled) { border-color: var(--gold); color: var(--gold); }
+
+    .form-card { background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 12px; padding: 28px; max-width: 600px; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: .1em; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; }
+    .form-group input, .form-group select { width: 100%; background: var(--void); border: 1px solid var(--border-muted); padding: 10px 12px; border-radius: 8px; color: var(--text-high); font-family: inherit; font-size: 0.8rem; }
+    .form-group input:focus, .form-group select:focus { border-color: var(--gold); outline: none; }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+
+    .token-box { background: var(--void); border: 1px solid var(--border-gold); border-radius: 10px; padding: 16px; margin-top: 16px; text-align: center; display: none; }
+    .token-box.visible { display: block; }
+    .token-box .tlabel { font-size: 0.5rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px; font-family: 'JetBrains Mono', monospace; letter-spacing: .12em; }
+    .token-box .tval { font-family: 'JetBrains Mono', monospace; font-size: 1.1rem; letter-spacing: .15em; color: var(--gold); }
+
+    .response-msg { font-size: 0.7rem; margin-top: 10px; padding: 10px; border-radius: 8px; display: none; }
+    .response-msg.visible { display: block; }
+    .response-msg.success { background: rgba(46,204,140,.1); color: var(--success); border: 1px solid rgba(46,204,140,.2); }
+    .response-msg.error { background: rgba(229,57,53,.1); color: var(--revoked); border: 1px solid rgba(229,57,53,.2); }
+
+    .empty { text-align: center; padding: 32px 20px; color: var(--text-faint); font-size: 0.7rem; }
+
+    .mt-2 { margin-top: 12px; }
+    .mt-4 { margin-top: 24px; }
+
+    .act-group { display: flex; gap: 3px; }
+    .act-group button { padding: 3px 8px; border-radius: 4px; border: 1px solid var(--border-faint); background: var(--abyss); color: var(--text-mid); cursor: pointer; font-size: 0.5rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; }
+
+    @media (max-width: 820px) { .sidebar { display: none; } .main { padding: 24px 20px; } .grid-2, .grid-3 { grid-template-columns: 1fr; } .form-row { grid-template-columns: 1fr; } }
+  </style>
 </head>
 <body class="bg-black text-white">
-    <div id="cursor-dot"></div>
-    <div id="cursor-ring"></div>
+  <div id="cursor-dot"></div>
+  <div id="cursor-ring"></div>
 
-    <div class="admin-grid">
-        <aside class="sidebar">
-            <div class="nav-logo">ACERVIS</div>
-            <nav style="display:flex;flex-direction:column;gap:4px;">
-                <button class="nav-tab active" data-tab="overview">📊 Overview</button>
-                <button class="nav-tab" data-tab="onboard">🏛 Onboard Institution</button>
-                <button class="nav-tab" data-tab="institutions">📋 All Institutions</button>
-                <button class="nav-tab" data-tab="audit">📜 Audit Log</button>
-            </nav>
-            <div class="sidebar-footer" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border-faint);">
-                <div style="font-size:0.55rem;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">SUPER_ADMIN: <span id="sa-status" style="color:var(--success);">Active</span></div>
-                <a href="index.html" class="btn btn-ghost" style="width:100%;margin-top:8px;font-size:0.7rem;padding:8px;">Exit Console</a>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="sidebar-head">
+        <div class="logo">ACERVIS</div>
+        <div class="sub">Governance Console</div>
+      </div>
+      <nav class="sidebar-nav">
+        <button class="nav-btn active" data-tab="overview"><script>document.write(Icons.barChart3)</script>Overview</button>
+        <button class="nav-btn" data-tab="onboard"><script>document.write(Icons.plus)</script>Onboard Institution</button>
+        <button class="nav-btn" data-tab="institutions"><script>document.write(Icons.institution)</script>All Institutions</button>
+        <button class="nav-btn" data-tab="audit"><script>document.write(Icons.activity)</script>Audit Log</button>
+      </nav>
+      <div class="sidebar-foot">
+        <div>SUPER_ADMIN: <span style="color:var(--success);">Active</span></div>
+        <a href="index.html" style="display:block;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-faint);color:var(--text-mid);text-decoration:none;">Exit Console →</a>
+      </div>
+    </aside>
+
+    <main class="main">
+      <!-- ═══ OVERVIEW ═══ -->
+      <section class="tab-content active" id="tab-overview">
+        <div class="page-hdr">
+          <div class="eyebrow">Protocol Governance</div>
+          <h1>Network <em>Overview</em></h1>
+          <p>Global statistics across the ACERVIS network.</p>
+        </div>
+        <div class="stat-grid" id="global-stats">
+          <div class="stat-card"><div class="lbl">Institutions</div><div class="val" id="gs-inst">—</div></div>
+          <div class="stat-card"><div class="lbl">Active Inst.</div><div class="val" id="gs-active-inst">—</div></div>
+          <div class="stat-card"><div class="lbl">Credentials</div><div class="val gold" id="gs-creds">—</div></div>
+          <div class="stat-card"><div class="lbl">Active Certs</div><div class="val" id="gs-active">—</div></div>
+          <div class="stat-card"><div class="lbl">Revoked</div><div class="val" id="gs-revoked">—</div></div>
+          <div class="stat-card"><div class="lbl">Transcripts</div><div class="val" id="gs-transcripts">—</div></div>
+          <div class="stat-card"><div class="lbl">Verifications</div><div class="val" id="gs-verifications">—</div></div>
+          <div class="stat-card"><div class="lbl">Last 24h</div><div class="val" id="gs-verif-24h">—</div></div>
+        </div>
+        <div class="grid-2">
+          <div class="card"><div class="card-hdr">Top Institutions</div>
+            <div class="card-bd" style="padding:0;">
+              <table><thead><tr><th>Institution</th><th>Code</th><th style="text-align:right;">Credentials</th></tr></thead><tbody id="top-inst-table"><tr><td colspan="3" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:24px;">Loading…</td></tr></tbody></table>
             </div>
-        </aside>
+          </div>
+          <div class="card"><div class="card-hdr">Monthly Trend (12mo)</div>
+            <div class="card-bd" style="padding:0;">
+              <table><thead><tr><th>Month</th><th style="text-align:right;">Issued</th></tr></thead><tbody id="monthly-trend-table"><tr><td colspan="2" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:24px;">Loading…</td></tr></tbody></table>
+            </div>
+          </div>
+        </div>
+        <div class="card mt-4"><div class="card-hdr">Recent Network Activity</div>
+          <div class="card-bd" style="padding:0;">
+            <table><thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Details</th></tr></thead><tbody id="recent-activity-table"><tr><td colspan="4" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:24px;">Loading…</td></tr></tbody></table>
+          </div>
+        </div>
+      </section>
 
-        <main class="main-content">
-            <!-- ═══ Tab: Overview ═══ -->
-            <section class="tab-content active" id="tab-overview">
-                <div class="eyebrow">Protocol Governance</div>
-                <h1 class="section-title">Network <em>Overview</em></h1>
-                <p class="section-body">Global statistics across the ACERVIS network.</p>
-                <div class="stat-card-row" id="global-stats">
-                    <div class="stat-card"><span class="stat-label">Institutions</span><div class="stat-num" id="gs-institutions">—</div></div>
-                    <div class="stat-card"><span class="stat-label">Active Inst.</span><div class="stat-num" id="gs-active-inst">—</div></div>
-                    <div class="stat-card"><span class="stat-label">Credentials</span><div class="stat-num" id="gs-credentials">—</div></div>
-                    <div class="stat-card"><span class="stat-label">Active Certs</span><div class="stat-num" id="gs-active-creds">—</div></div>
-                    <div class="stat-card"><span class="stat-label">Revoked</span><div class="stat-num" id="gs-revoked">—</div></div>
-                    <div class="stat-card"><span class="stat-label">Transcripts</span><div class="stat-num" id="gs-transcripts">—</div></div>
-                    <div class="stat-card"><span class="stat-label">Verifications</span><div class="stat-num" id="gs-verifications">—</div></div>
-                    <div class="stat-card"><span class="stat-label">Last 24h</span><div class="stat-num" id="gs-verif-24h">—</div></div>
-                </div>
+      <!-- ═══ ONBOARD ═══ -->
+      <section class="tab-content" id="tab-onboard">
+        <div class="page-hdr">
+          <div class="eyebrow">Institutional Onboarding</div>
+          <h1>Authorize a New <em>Institution</em></h1>
+        </div>
+        <form class="form-card" id="onboard-form">
+          <div class="form-row">
+            <div class="form-group"><label>Institution Name</label><input type="text" id="inst-name" placeholder="e.g. Admiralty University" required /></div>
+            <div class="form-group"><label>Short Code</label><input type="text" id="inst-short-code" placeholder="e.g. ADUN" maxlength="10" required /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Type</label><select id="inst-type"><option value="University">University</option><option value="Polytechnic">Polytechnic</option></select></div>
+            <div class="form-group"><label>Issuance Quota</label><input type="number" id="inst-quota" placeholder="e.g. 10000" min="1" required /></div>
+          </div>
+          <div class="form-row">
+            <div class="form-group"><label>Admin Email</label><input type="email" id="inst-email" placeholder="registrar@uni.edu.ng" required /></div>
+            <div class="form-group"><label>Wallet (Polygon)</label><input type="text" id="inst-wallet" placeholder="Auto-generated if empty" /></div>
+          </div>
+          <div class="token-box" id="token-box"><span class="tlabel">Institutional Token</span><div class="tval" id="token-value"></div><div style="font-size:0.55rem;color:var(--text-faint);margin-top:6px;font-family:'JetBrains Mono',monospace;" id="wallet-value"></div></div>
+          <div id="form-response" class="response-msg"></div>
+          <button type="submit" class="btn btn-primary" style="width:100%;margin-top:12px;" id="onboard-btn"><script>document.write(Icons.plus)</script> Authorize Institution</button>
+        </form>
+      </section>
 
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
-                    <div class="table-wrap"><h3>Top Institutions</h3>
-                        <table><thead><tr><th>Institution</th><th>Code</th><th>Credentials</th></tr></thead>
-                        <tbody id="top-inst-table"><tr><td colspan="3" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
-                    </div>
-                    <div class="table-wrap"><h3>Monthly Credential Trend (12mo)</h3>
-                        <table><thead><tr><th>Month</th><th>Issued</th></tr></thead>
-                        <tbody id="monthly-trend-table"><tr><td colspan="2" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
-                    </div>
-                </div>
+      <!-- ═══ INSTITUTIONS ═══ -->
+      <section class="tab-content" id="tab-institutions">
+        <div class="page-hdr">
+          <div class="eyebrow">Institution Management</div>
+          <h1>All <em>Institutions</em></h1>
+        </div>
+        <div class="toolbar">
+          <input id="inst-search" placeholder="Search by name or short code…" />
+          <select id="inst-status-filter"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+          <button class="btn btn-secondary btn-sm" id="inst-search-btn"><script>document.write(Icons.search)</script>Refresh</button>
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr><th>Name</th><th>Code</th><th>Type</th><th>Wallet</th><th>Quota</th><th>Issued</th><th>Status</th><th>Actions</th></tr></thead>
+            <tbody id="inst-table"><tr><td colspan="8" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:32px;">Loading…</td></tr></tbody>
+          </table>
+          <div class="pagination" id="inst-pagination"></div>
+        </div>
+      </section>
 
-                <div class="table-wrap" style="margin-top:20px;"><h3>Recent Network Activity</h3>
-                    <table><thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Details</th></tr></thead>
-                    <tbody id="recent-activity-table"><tr><td colspan="4" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
-                </div>
-            </section>
+      <!-- ═══ AUDIT ═══ -->
+      <section class="tab-content" id="tab-audit">
+        <div class="page-hdr">
+          <div class="eyebrow">System Audit</div>
+          <h1>Network <em>Logs</em></h1>
+        </div>
+        <div class="toolbar">
+          <select id="audit-filter">
+            <option value="">All actions</option>
+            <option value="batch_issue">batch_issue</option>
+            <option value="institution_onboarded">institution_onboarded</option>
+            <option value="quota_updated">quota_updated</option>
+            <option value="credential_revoked">credential_revoked</option>
+            <option value="verify_verified">verify_verified</option>
+          </select>
+          <button class="btn btn-secondary btn-sm" id="audit-refresh"><script>document.write(Icons.refreshCw)</script>Refresh</button>
+        </div>
+        <div class="tbl-wrap">
+          <table><thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Target</th><th>Metadata</th><th>IP</th></tr></thead>
+            <tbody id="audit-table"><tr><td colspan="6" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:32px;">Loading…</td></tr></tbody>
+          </table>
+          <div class="pagination" id="audit-pagination"></div>
+        </div>
+      </section>
+    </main>
+  </div>
 
-            <!-- ═══ Tab: Onboard ═══ -->
-            <section class="tab-content" id="tab-onboard">
-                <div class="eyebrow">Institutional Onboarding</div>
-                <h1 class="section-title">Authorize a New <em>Institution</em></h1>
-                <form class="inline-form" id="onboard-form">
-                    <div class="form-row">
-                        <div class="form-group"><label>Institution Name</label><input type="text" id="inst-name" placeholder="e.g. Admiralty University" required></div>
-                        <div class="form-group"><label>Short Code</label><input type="text" id="inst-short-code" placeholder="e.g. ADUN" maxlength="10" required></div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Type</label><select id="inst-type"><option value="University">University</option><option value="Polytechnic">Polytechnic</option></select></div>
-                        <div class="form-group"><label>Issuance Quota</label><input type="number" id="inst-quota" placeholder="e.g. 10000" min="1" required></div>
-                    </div>
-                    <div class="form-row">
-                        <div class="form-group"><label>Admin Email</label><input type="email" id="inst-email" placeholder="registrar@uni.edu.ng" required></div>
-                        <div class="form-group"><label>Wallet (Polygon)</label><input type="text" id="inst-wallet" placeholder="0x..."></div>
-                    </div>
-                    <div class="token-display" id="token-display"><span class="tlabel">Institutional Token — Share with Registrar</span><div id="token-value"></div></div>
-                    <div id="form-response" class="response-msg"></div>
-                    <button type="submit" class="btn btn-primary" style="width:100%;margin-top:12px;" id="onboard-btn">Authorize Institution</button>
-                </form>
-            </section>
+  <script src="assets/js/core.js"></script>
+  <script>
+  (function() {
+    const SA = sessionStorage.getItem('acervis_super_admin') || localStorage.getItem('acervis_super_admin');
+    if (!SA) { const s = prompt('Enter Super Admin governance secret:'); if (s && s.length > 3) { localStorage.setItem('acervis_super_admin', s); sessionStorage.setItem('acervis_super_admin', s); } else { window.location.href = 'index.html'; return; } }
+    const H = { 'x-super-admin-secret': (sessionStorage.getItem('acervis_super_admin') || localStorage.getItem('acervis_super_admin')) };
 
-            <!-- ═══ Tab: Institutions ═══ -->
-            <section class="tab-content" id="tab-institutions">
-                <div class="eyebrow">Institution Management</div>
-                <h1 class="section-title">All <em>Institutions</em></h1>
-                <div class="toolbar">
-                    <input class="search-input" id="inst-search-input" placeholder="Search by name or short code...">
-                    <select id="inst-status-filter"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
-                    <button class="btn btn-primary" id="inst-search-btn" style="font-size:0.65rem;padding:8px 16px;">Refresh</button>
-                </div>
-                <div class="table-wrap">
-                    <table><thead><tr><th>Name</th><th>Code</th><th>Type</th><th>Quota</th><th>Issued</th><th>Status</th><th>Actions</th></tr></thead>
-                        <tbody id="inst-table-body"><tr><td colspan="7" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
-                    </table>
-                    <div class="pagination" id="inst-pagination"></div>
-                </div>
-            </section>
+    document.querySelectorAll('.nav-btn').forEach(b => {
+      b.addEventListener('click', () => {
+        document.querySelectorAll('.nav-btn,.tab-content').forEach(el => el.classList.remove('active'));
+        b.classList.add('active');
+        document.getElementById('tab-'+b.dataset.tab).classList.add('active');
+      });
+    });
 
-            <!-- ═══ Tab: Audit ═══ -->
-            <section class="tab-content" id="tab-audit">
-                <div class="eyebrow">System Audit</div>
-                <h1 class="section-title">Network <em>Logs</em></h1>
-                <div class="toolbar">
-                    <select id="audit-action-filter">
-                        <option value="">All actions</option>
-                        <option value="batch_issue">batch_issue</option>
-                        <option value="institution_onboarded">institution_onboarded</option>
-                        <option value="quota_updated">quota_updated</option>
-                        <option value="credential_revoked">credential_revoked</option>
-                        <option value="verify_verified">verify_verified</option>
-                        <option value="credential_activated">credential_activated</option>
-                    </select>
-                    <button class="btn btn-primary" id="audit-refresh-btn" style="font-size:0.65rem;padding:8px 16px;">Refresh</button>
-                </div>
-                <div class="table-wrap">
-                    <table><thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Target</th><th>Metadata</th><th>IP</th></tr></thead>
-                        <tbody id="audit-table-body"><tr><td colspan="6" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
-                    </table>
-                    <div class="pagination" id="audit-pagination"></div>
-                </div>
-            </section>
-        </main>
-    </div>
+    function esc(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
 
-    <script src="assets/js/core.js"></script>
-    <script>
-    (function() {
-        // ── Auth ──
-        const SA_SECRET = sessionStorage.getItem('acervis_super_admin') || localStorage.getItem('acervis_super_admin');
-        if (!SA_SECRET) {
-            const secret = prompt('Enter Super Admin governance secret:');
-            if (secret && secret.length > 3) {
-                localStorage.setItem('acervis_super_admin', secret);
-                sessionStorage.setItem('acervis_super_admin', secret);
-            } else { window.location.href = 'index.html'; return; }
-        }
+    // ── Overview ──
+    async function loadOverview() {
+      try {
+        const d = await (await fetch('/api/v1/stats', { headers: H })).json();
+        const t = d.totals || {};
+        document.getElementById('gs-inst').textContent = t.total_institutions ?? 0;
+        document.getElementById('gs-active-inst').textContent = t.active_institutions ?? 0;
+        document.getElementById('gs-creds').textContent = t.total_credentials ?? 0;
+        document.getElementById('gs-active').textContent = t.active_credentials ?? 0;
+        document.getElementById('gs-revoked').textContent = t.revoked_credentials ?? 0;
+        document.getElementById('gs-transcripts').textContent = t.total_transcripts ?? 0;
+        document.getElementById('gs-verifications').textContent = t.total_verifications ?? 0;
+        document.getElementById('gs-verif-24h').textContent = t.verifications_24h ?? 0;
 
-        const SA_HEADERS = { 'x-super-admin-secret': (sessionStorage.getItem('acervis_super_admin') || localStorage.getItem('acervis_super_admin')) };
+        const top = d.top_institutions || [];
+        document.getElementById('top-inst-table').innerHTML = top.length ? top.map(i => `<tr><td>${esc(i.name)}</td><td class="mono">${esc(i.short_code)}</td><td style="text-align:right;">${i.issued_count}</td></tr>`).join('') : '<tr><td colspan="3" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:24px;">No data</td></tr>';
 
-        // ── Sidebar ──
-        document.querySelectorAll('.nav-tab').forEach(btn => {
-            btn.addEventListener('click', () => {
-                document.querySelectorAll('.nav-tab, .tab-content').forEach(el => el.classList.remove('active'));
-                btn.classList.add('active');
-                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-            });
-        });
+        const trend = d.monthly_trend || [];
+        document.getElementById('monthly-trend-table').innerHTML = trend.length ? trend.map(m => `<tr><td>${esc(m.month)}</td><td style="text-align:right;">${m.count}</td></tr>`).join('') : '<tr><td colspan="2" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:24px;">No data</td></tr>';
 
-        function escape(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        const act = d.recent_activity || [];
+        document.getElementById('recent-activity-table').innerHTML = act.length ? act.slice(0,15).map(a => `<tr><td style="font-size:0.55rem;font-family:'JetBrains Mono',monospace;">${new Date(a.created_at).toLocaleString()}</td><td class="mono" style="font-size:0.55rem;">${esc(a.action)}</td><td>${esc(a.actor_name||'—')}</td><td style="font-size:0.55rem;color:var(--text-faint);">${esc(JSON.stringify(a.metadata||{}).slice(0,60))}</td></tr>`).join('') : '<tr><td colspan="4" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:24px;">No activity</td></tr>';
+      } catch(e) { document.getElementById('global-stats').innerHTML = `<p style="color:var(--revoked);font-size:0.75rem;">${esc(e.message)}</p>`; }
+    }
+    loadOverview();
 
-        // ── Global Stats ──
-        async function loadGlobalStats() {
-            try {
-                const data = await (await fetch('/api/v1/stats', { headers: SA_HEADERS })).json();
-                const t = data.totals || {};
-                document.getElementById('gs-institutions').textContent = t.total_institutions || 0;
-                document.getElementById('gs-active-inst').textContent = t.active_institutions || 0;
-                document.getElementById('gs-credentials').textContent = t.total_credentials || 0;
-                document.getElementById('gs-active-creds').textContent = t.active_credentials || 0;
-                document.getElementById('gs-revoked').textContent = t.revoked_credentials || 0;
-                document.getElementById('gs-transcripts').textContent = t.total_transcripts || 0;
-                document.getElementById('gs-verifications').textContent = t.total_verifications || 0;
-                document.getElementById('gs-verif-24h').textContent = t.verifications_24h || 0;
+    // ── Onboard ──
+    document.getElementById('onboard-form').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('onboard-btn'), resp = document.getElementById('form-response'), tb = document.getElementById('token-box');
+      btn.disabled = true; btn.textContent = '⟳ Processing…'; resp.classList.remove('visible','success','error'); tb.classList.remove('visible');
 
-                // Top institutions
-                const topInst = data.top_institutions || [];
-                document.getElementById('top-inst-table').innerHTML = topInst.length
-                    ? topInst.map(i => `<tr><td>${escape(i.name)}</td><td class="mono">${escape(i.short_code)}</td><td>${i.issued_count}</td></tr>`).join('')
-                    : '<tr><td colspan="3" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No data</td></tr>';
+      const body = { name: document.getElementById('inst-name').value.trim(), short_code: document.getElementById('inst-short-code').value.trim().toUpperCase(), type: document.getElementById('inst-type').value, quota: parseInt(document.getElementById('inst-quota').value), email: document.getElementById('inst-email').value.trim() };
+      try {
+        const r = await fetch('/api/v1/institutions', { method:'POST', headers:{'Content-Type':'application/json',...H}, body:JSON.stringify(body) });
+        const d = await r.json();
+        if (r.ok && d.success) {
+          resp.textContent = '✓ Institution onboarded!'; resp.className = 'response-msg visible success';
+          document.getElementById('token-value').textContent = d.token_id;
+          document.getElementById('wallet-value').textContent = 'Wallet: ' + (d.wallet_address || '—');
+          tb.classList.add('visible');
+          document.getElementById('onboard-form').reset();
+          loadOverview(); loadInst();
+        } else { resp.textContent = '✗ ' + (d.error||'Failed'); resp.className = 'response-msg visible error'; }
+      } catch(e) { resp.textContent = '✗ ' + e.message; resp.className = 'response-msg visible error'; }
+      finally { btn.disabled = false; btn.innerHTML = Icons.plus + ' Authorize Institution'; }
+    });
 
-                // Monthly trend
-                const trend = data.monthly_trend || [];
-                document.getElementById('monthly-trend-table').innerHTML = trend.length
-                    ? trend.map(m => `<tr><td>${escape(m.month)}</td><td>${m.count}</td></tr>`).join('')
-                    : '<tr><td colspan="2" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No data</td></tr>';
+    // ── Institutions ──
+    let ip = 1;
+    async function loadInst() {
+      const q = document.getElementById('inst-search').value, s = document.getElementById('inst-status-filter').value;
+      const params = new URLSearchParams({ page: ip, limit: 20 }); if (q) params.set('search', q); if (s) params.set('status', s);
+      try {
+        const d = await (await fetch('/api/v1/institutions?'+params.toString(), { headers: H })).json();
+        const list = d.institutions || [];
+        const tb = document.getElementById('inst-table');
+        if (!list.length) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:32px;">No institutions found.</td></tr>'; return; }
+        tb.innerHTML = list.map(i => `<tr>
+          <td>${esc(i.name)}</td>
+          <td class="mono">${esc(i.short_code)}</td>
+          <td>${esc(i.type)}</td>
+          <td class="mono" style="font-size:0.55rem;color:var(--text-faint);">${i.wallet_address ? i.wallet_address.slice(0,10)+'…' : '—'}</td>
+          <td>${i.issuance_quota?.toLocaleString()||0}</td>
+          <td>${i.issued_count||0}</td>
+          <td><span class="badge ${i.is_active ? 'active' : 'inactive'}">${i.is_active ? 'Active' : 'Inactive'}</span></td>
+          <td><div class="act-group">
+            <button onclick="tog('${i.id}',${!i.is_active})">${i.is_active ? 'Deactivate' : 'Activate'}</button>
+            <button onclick="qt('${i.id}')">Quota</button>
+          </div></td></tr>`).join('');
+        const pg = d.pagination || {};
+        document.getElementById('inst-pagination').innerHTML = pg.totalPages > 1 ? `<button ${pg.page<=1?'disabled':''} onclick="ip--;loadInst();">← Prev</button><span>Page ${pg.page} of ${pg.totalPages}</span><button ${pg.page>=pg.totalPages?'disabled':''} onclick="ip++;loadInst();">Next →</button>` : '';
+      } catch(e) { document.getElementById('inst-table').innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--revoked);font-size:0.65rem;">${esc(e.message)}</td></tr>`; }
+    }
+    loadInst();
+    document.getElementById('inst-search-btn').addEventListener('click', () => { ip = 1; loadInst(); });
+    document.getElementById('inst-status-filter').addEventListener('change', () => { ip = 1; loadInst(); });
+    document.getElementById('inst-search').addEventListener('keydown', e => { if (e.key === 'Enter') { ip = 1; loadInst(); } });
 
-                // Recent activity
-                const activity = data.recent_activity || [];
-                document.getElementById('recent-activity-table').innerHTML = activity.length
-                    ? activity.slice(0, 15).map(a => `<tr>
-                        <td style="font-size:0.6rem;font-family:'JetBrains Mono',monospace;">${new Date(a.created_at).toLocaleString()}</td>
-                        <td class="mono">${escape(a.action)}</td>
-                        <td>${escape(a.actor_name || '—')}</td>
-                        <td style="font-size:0.6rem;color:var(--text-faint);">${escape(JSON.stringify(a.metadata || {}).slice(0, 60))}</td>
-                    </tr>`).join('')
-                    : '<tr><td colspan="4" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No activity yet</td></tr>';
-            } catch(e) {
-                document.getElementById('global-stats').innerHTML = `<p style="color:var(--revoked);font-size:0.8rem;">Failed: ${escape(e.message)}</p>`;
-            }
-        }
-        loadGlobalStats();
+    window.tog = async (id, s) => { try { await fetch('/api/v1/institutions?id='+id+'&action=status', { method:'PATCH', headers:{'Content-Type':'application/json',...H}, body:JSON.stringify({is_active:s}) }); loadInst(); loadOverview(); } catch(e) { alert(e.message); } };
+    window.qt = async (id) => { const q = prompt('New quota:'); if (!q||isNaN(q)||parseInt(q)<0) return; try { await fetch('/api/v1/institutions?id='+id+'&action=quota', { method:'PATCH', headers:{'Content-Type':'application/json',...H}, body:JSON.stringify({quota:parseInt(q)}) }); loadInst(); } catch(e) { alert(e.message); } };
 
-        // ── Onboard ──
-        document.getElementById('onboard-form').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('onboard-btn');
-            const responseDiv = document.getElementById('form-response');
-            const tokenDisplay = document.getElementById('token-display');
-            btn.disabled = true; btn.textContent = '⟳ Processing...';
-            responseDiv.classList.remove('visible', 'success', 'error');
-            tokenDisplay.classList.remove('visible');
-
-            const body = {
-                name: document.getElementById('inst-name').value.trim(),
-                short_code: document.getElementById('inst-short-code').value.trim().toUpperCase(),
-                type: document.getElementById('inst-type').value,
-                quota: parseInt(document.getElementById('inst-quota').value),
-                email: document.getElementById('inst-email').value.trim(),
-                wallet: document.getElementById('inst-wallet').value.trim() || undefined
-            };
-
-            try {
-                const res = await fetch('/api/v1/institutions', {
-                    method: 'POST', headers: { 'Content-Type': 'application/json', ...SA_HEADERS },
-                    body: JSON.stringify(body)
-                });
-                const data = await res.json();
-                if (res.ok && data.success) {
-                    responseDiv.textContent = '✓ Institution onboarded successfully!';
-                    responseDiv.className = 'response-msg visible success';
-                    document.getElementById('token-value').textContent = data.token_id;
-                    tokenDisplay.classList.add('visible');
-                    document.getElementById('onboard-form').reset();
-                    loadGlobalStats();
-                    loadInstitutions();
-                } else {
-                    responseDiv.textContent = '✗ ' + (data.error || 'Failed');
-                    responseDiv.className = 'response-msg visible error';
-                }
-            } catch(e) {
-                responseDiv.textContent = '✗ Network error: ' + e.message;
-                responseDiv.className = 'response-msg visible error';
-            } finally {
-                btn.disabled = false; btn.textContent = 'Authorize Institution';
-            }
-        });
-
-        // ── Institutions List ──
-        let instPage = 1;
-        async function loadInstitutions() {
-            const search = document.getElementById('inst-search-input').value;
-            const status = document.getElementById('inst-status-filter').value;
-            const params = new URLSearchParams({ page: instPage, limit: 20 });
-            if (search) params.set('search', search);
-            if (status) params.set('status', status);
-
-            try {
-                const data = await (await fetch('/api/v1/institutions?' + params.toString(), { headers: SA_HEADERS })).json();
-                const tbody = document.getElementById('inst-table-body');
-                const list = data.institutions || [];
-                if (list.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No institutions found.</td></tr>';
-                } else {
-                    tbody.innerHTML = list.map(i => `<tr>
-                        <td>${escape(i.name)}</td>
-                        <td class="mono">${escape(i.short_code)}</td>
-                        <td>${escape(i.type)}</td>
-                        <td>${i.issuance_quota?.toLocaleString() || 0}</td>
-                        <td>${i.issued_count || 0}</td>
-                        <td><span class="badge ${i.is_active ? 'active' : 'inactive'}">${i.is_active ? 'Active' : 'Inactive'}</span></td>
-                        <td>
-                            <button style="font-size:0.55rem;padding:4px 8px;margin-right:4px;border:1px solid var(--border-faint);background:var(--abyss);border-radius:4px;color:var(--text-mid);cursor:pointer;" onclick="toggleInstStatus('${i.id}', ${!i.is_active})">
-                                ${i.is_active ? 'Deactivate' : 'Activate'}
-                            </button>
-                            <button style="font-size:0.55rem;padding:4px 8px;border:1px solid var(--border-faint);background:var(--abyss);border-radius:4px;color:var(--text-mid);cursor:pointer;" onclick="editQuota('${i.id}')">
-                                Quota
-                            </button>
-                        </td>
-                    </tr>`).join('');
-                }
-                const pg = data.pagination || {};
-                const pgDiv = document.getElementById('inst-pagination');
-                pgDiv.innerHTML = pg.totalPages > 1
-                    ? `<button ${pg.page <= 1 ? 'disabled' : ''} onclick="instPage--;loadInstitutions();">← Prev</button>
-                       <span>Page ${pg.page} of ${pg.totalPages} (${pg.total})</span>
-                       <button ${pg.page >= pg.totalPages ? 'disabled' : ''} onclick="instPage++;loadInstitutions();">Next →</button>`
-                    : '';
-            } catch(e) {
-                document.getElementById('inst-table-body').innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--revoked);font-size:0.7rem;">${escape(e.message)}</td></tr>`;
-            }
-        }
-        loadInstitutions();
-        document.getElementById('inst-search-btn').addEventListener('click', () => { instPage = 1; loadInstitutions(); });
-        document.getElementById('inst-status-filter').addEventListener('change', () => { instPage = 1; loadInstitutions(); });
-        document.getElementById('inst-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') { instPage = 1; loadInstitutions(); } });
-
-        window.toggleInstStatus = async (id, newStatus) => {
-            try {
-                await fetch('/api/v1/institutions?id=' + id + '&action=status', {
-                    method: 'PATCH', headers: { 'Content-Type': 'application/json', ...SA_HEADERS },
-                    body: JSON.stringify({ is_active: newStatus })
-                });
-                loadInstitutions(); loadGlobalStats();
-            } catch(e) { alert('Error: ' + e.message); }
-        };
-
-        window.editQuota = async (id) => {
-            const quota = prompt('Enter new issuance quota:');
-            if (!quota || isNaN(quota) || parseInt(quota) < 0) return;
-            try {
-                await fetch('/api/v1/institutions?id=' + id + '&action=quota', {
-                    method: 'PATCH', headers: { 'Content-Type': 'application/json', ...SA_HEADERS },
-                    body: JSON.stringify({ quota: parseInt(quota) })
-                });
-                loadInstitutions();
-            } catch(e) { alert('Error: ' + e.message); }
-        };
-
-        // ── Audit Logs ──
-        let auditPage = 1;
-        async function loadAudit() {
-            const action = document.getElementById('audit-action-filter').value;
-            const params = new URLSearchParams({ page: auditPage, limit: 25 });
-            if (action) params.set('action', action);
-
-            try {
-                const data = await (await fetch('/api/v1/audit?' + params.toString(), { headers: SA_HEADERS })).json();
-                const tbody = document.getElementById('audit-table-body');
-                const list = data.audit_logs || [];
-                if (list.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No audit logs found.</td></tr>';
-                } else {
-                    tbody.innerHTML = list.map(l => `<tr>
-                        <td style="font-size:0.55rem;font-family:'JetBrains Mono',monospace;">${new Date(l.created_at).toLocaleString()}</td>
-                        <td class="mono" style="font-size:0.6rem;">${escape(l.action)}</td>
-                        <td style="font-size:0.6rem;">${escape(l.actor_name || l.actor_id || '—')}</td>
-                        <td style="font-size:0.55rem;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">${l.target_id ? l.target_id.slice(0, 8) + '...' : '—'}</td>
-                        <td style="font-size:0.55rem;color:var(--text-faint);max-width:200px;overflow:hidden;text-overflow:ellipsis;">${escape(JSON.stringify(l.metadata || {}).slice(0, 80))}</td>
-                        <td style="font-size:0.5rem;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">${escape(l.ip_address || '—')}</td>
-                    </tr>`).join('');
-                }
-                const pg = data.pagination || {};
-                document.getElementById('audit-pagination').innerHTML = pg.totalPages > 1
-                    ? `<button ${pg.page <= 1 ? 'disabled' : ''} onclick="auditPage--;loadAudit();">← Prev</button>
-                       <span>Page ${pg.page} of ${pg.totalPages} (${pg.total})</span>
-                       <button ${pg.page >= pg.totalPages ? 'disabled' : ''} onclick="auditPage++;loadAudit();">Next →</button>`
-                    : '';
-            } catch(e) {
-                document.getElementById('audit-table-body').innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--revoked);font-size:0.7rem;">${escape(e.message)}</td></tr>`;
-            }
-        }
-        loadAudit();
-        document.getElementById('audit-refresh-btn').addEventListener('click', () => { auditPage = 1; loadAudit(); });
-        document.getElementById('audit-action-filter').addEventListener('change', () => { auditPage = 1; loadAudit(); });
-    })();
-    </script>
+    // ── Audit ──
+    let ap = 1;
+    async function loadAudit() {
+      const act = document.getElementById('audit-filter').value;
+      const params = new URLSearchParams({ page: ap, limit: 25 }); if (act) params.set('action', act);
+      try {
+        const d = await (await fetch('/api/v1/audit?'+params.toString(), { headers: H })).json();
+        const list = d.audit_logs || [];
+        const tb = document.getElementById('audit-table');
+        if (!list.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:32px;">No audit logs.</td></tr>'; return; }
+        tb.innerHTML = list.map(l => `<tr><td style="font-size:0.5rem;font-family:'JetBrains Mono',monospace;">${new Date(l.created_at).toLocaleString()}</td><td class="mono" style="font-size:0.55rem;">${esc(l.action)}</td><td>${esc(l.actor_name||'—')}</td><td class="mono" style="font-size:0.5rem;color:var(--text-faint);">${l.target_id ? l.target_id.slice(0,8)+'…' : '—'}</td><td style="font-size:0.5rem;color:var(--text-faint);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(JSON.stringify(l.metadata||{}).slice(0,60))}</td><td style="font-size:0.45rem;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">${esc(l.ip_address||'—')}</td></tr>`).join('');
+        const pg = d.pagination || {};
+        document.getElementById('audit-pagination').innerHTML = pg.totalPages > 1 ? `<button ${pg.page<=1?'disabled':''} onclick="ap--;loadAudit();">← Prev</button><span>Page ${pg.page} of ${pg.totalPages}</span><button ${pg.page>=pg.totalPages?'disabled':''} onclick="ap++;loadAudit();">Next →</button>` : '';
+      } catch(e) { document.getElementById('audit-table').innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--revoked);font-size:0.65rem;">${esc(e.message)}</td></tr>`; }
+    }
+    loadAudit();
+    document.getElementById('audit-refresh').addEventListener('click', () => { ap = 1; loadAudit(); });
+    document.getElementById('audit-filter').addEventListener('change', () => { ap = 1; loadAudit(); });
+  })();
+  </script>
 </body>
 </html>
