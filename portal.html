@@ -91,7 +91,19 @@
     .s-notfound { color: var(--notfound); }
     .s-error { color: var(--revoked); }
 
-    @media (max-width: 600px) { .card { padding: 28px 20px; } .r-grid { grid-template-columns: 1fr; } .r-field.full { grid-column: span 1; } }
+    @media (max-width: 600px) {
+      .card { padding: 28px 20px; }
+      .r-grid { grid-template-columns: 1fr; }
+      .r-field.full { grid-column: span 1; }
+      .search-bar { flex-wrap: wrap; }
+      .search-bar input { min-width: 0; font-size: 0.7rem; }
+      .search-bar button { width: 100%; }
+      .tabs button { padding: 8px 14px; font-size: 0.6rem; }
+      .sub-grid { grid-template-columns: 1fr 1fr 1fr; font-size: 0.55rem; }
+      .sub-grid.hdr span:nth-child(2) { display: none; }
+      .sub-grid:not(.hdr) span:nth-child(2) { display: none; }
+      .portal { padding: 80px 12px; }
+    }
   </style>
 </head>
 <body>
