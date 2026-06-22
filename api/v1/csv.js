@@ -132,14 +132,8 @@ function validateCombinedData(rows) {
 export default async function handler(req, res) {
   handlePreflight(req, res, 'GET, POST, OPTIONS');
 
-  const institution = await authenticateInstitution(req);
-
-  if (!institution) {
-    return error(res, 'ACV_401', 'Authentication required', 401);
-  }
-
   try {
-    // ── GET: Download template ──
+    // ── GET: Download template (public, no auth needed) ──
     if (req.method === 'GET') {
       const type = req.query.type || 'credential';
 
@@ -156,8 +150,10 @@ export default async function handler(req, res) {
       }
     }
 
-    // ── POST: Validate ──
+    // ── POST: Validate (requires auth) ──
     if (req.method === 'POST') {
+      const institution = await authenticateInstitution(req);
+      if (!institution) return error(res, 'ACV_401', 'Authentication required', 401);
       let csvText = '';
 
       if (typeof req.body === 'string') {
