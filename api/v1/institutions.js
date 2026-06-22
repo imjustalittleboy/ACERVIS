@@ -151,8 +151,15 @@ export default async function handler(req, res) {
         if (typeof is_active !== 'boolean') return error(res, 'ACV_400', 'is_active (boolean) required');
         const [inst] = await sql`UPDATE institutions SET is_active=${is_active},last_activity_at=NOW() WHERE id=${id} RETURNING id,name,is_active`;
         if (!inst) return error(res, 'ACV_404', 'Not found', 404);
+
+        // When deactivating, cascade-revoke all active credentials and transcripts
+        if (!is_active) {
+          await sql`UPDATE credentials SET status='revoked' WHERE institution_id=${id} AND status='active'`;
+          await sql`UPDATE transcripts SET status='revoked' WHERE institution_id=${id} AND status='active'`;
+        }
+
         await logAudit(is_active ? 'institution_reactivated' : 'institution_deactivated', null, id, {}, req);
-        return res.status(200).json({ success: true, message: is_active ? 'Institution reactivated' : 'Institution deactivated', institution: inst });
+        return res.status(200).json({ success: true, message: is_active ? 'Institution reactivated' : 'Institution deactivated. All active credentials and transcripts have been revoked.', institution: inst });
       }
 
       return error(res, 'ACV_400', 'Invalid action. Use: quota, status');
@@ -165,8 +172,10 @@ export default async function handler(req, res) {
       if (!id) return error(res, 'ACV_400', 'Institution ID required');
       const [inst] = await sql`UPDATE institutions SET is_active=FALSE,last_activity_at=NOW() WHERE id=${id} RETURNING id,name`;
       if (!inst) return error(res, 'ACV_404', 'Not found', 404);
+      await sql`UPDATE credentials SET status='revoked' WHERE institution_id=${id} AND status='active'`;
+      await sql`UPDATE transcripts SET status='revoked' WHERE institution_id=${id} AND status='active'`;
       await logAudit('institution_deactivated', null, id, {}, req);
-      return res.status(200).json({ success: true, message: 'Institution deactivated' });
+      return res.status(200).json({ success: true, message: 'Institution deactivated. All credentials revoked.' });
     }
 
     return error(res, 'ACV_405', 'Method not allowed', 405);

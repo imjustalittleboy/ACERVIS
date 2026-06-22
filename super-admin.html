@@ -360,7 +360,7 @@
     window._instPage = 1;
     async function loadInst() {
       const q = document.getElementById('inst-search').value, s = document.getElementById('inst-status-filter').value;
-      const params = new URLSearchParams({ page: window._instPage, limit: 20 }); if (q) params.set('search', q); if (s) params.set('status', s);
+      const params = new URLSearchParams({ page: window._instPage, limit: 50 }); if (q) params.set('search', q); if (s) params.set('status', s);
       try {
         const d = await (await fetch('/api/v1/institutions?'+params.toString(), { headers: H })).json();
         const list = d.institutions || [];
@@ -379,7 +379,9 @@
             <button onclick="qt('${i.id}')">Quota</button>
           </div></td></tr>`).join('');
         const pg = d.pagination || {};
-        document.getElementById('inst-pagination').innerHTML = pg.totalPages > 1 ? `<button ${pg.page<=1?'disabled':''} onclick="window._instPage--;loadInst();">← Prev</button><span>Page ${pg.page} of ${pg.totalPages}</span><button ${pg.page>=pg.totalPages?'disabled':''} onclick="window._instPage++;loadInst();">Next →</button>` : '';
+        document.getElementById('inst-pagination').innerHTML = pg.total > 0 
+          ? `<span style="margin-right:12px;">${pg.total} institution(s)</span>${pg.totalPages > 1 ? `<button ${pg.page<=1?'disabled':''} onclick="window._instPage--;loadInst();">← Prev</button><span>Page ${pg.page} of ${pg.totalPages}</span><button ${pg.page>=pg.totalPages?'disabled':''} onclick="window._instPage++;loadInst();">Next →</button>` : ''}`
+          : '';
       } catch(e) { document.getElementById('inst-table').innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--revoked);font-size:0.65rem;">${esc(e.message)}</td></tr>`; }
     }
     loadInst();
@@ -402,7 +404,9 @@
         if (!list.length) { tb.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:32px;">No audit logs.</td></tr>'; return; }
         tb.innerHTML = list.map(l => `<tr><td style="font-size:0.5rem;font-family:'JetBrains Mono',monospace;">${new Date(l.created_at).toLocaleString()}</td><td class="mono" style="font-size:0.55rem;">${esc(l.action)}</td><td>${esc(l.actor_name||'—')}</td><td class="mono" style="font-size:0.5rem;color:var(--text-faint);">${l.target_id ? l.target_id.slice(0,8)+'…' : '—'}</td><td style="font-size:0.5rem;color:var(--text-faint);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${esc(JSON.stringify(l.metadata||{}).slice(0,60))}</td><td style="font-size:0.45rem;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">${esc(l.ip_address||'—')}</td></tr>`).join('');
         const pg = d.pagination || {};
-        document.getElementById('audit-pagination').innerHTML = pg.totalPages > 1 ? `<button ${pg.page<=1?'disabled':''} onclick="window._auditPage--;loadAudit();">← Prev</button><span>Page ${pg.page} of ${pg.totalPages}</span><button ${pg.page>=pg.totalPages?'disabled':''} onclick="window._auditPage++;loadAudit();">Next →</button>` : '';
+        document.getElementById('audit-pagination').innerHTML = pg.total > 0
+          ? `<span style="margin-right:12px;">${pg.total} log(s)</span>${pg.totalPages > 1 ? `<button ${pg.page<=1?'disabled':''} onclick="window._auditPage--;loadAudit();">← Prev</button><span>Page ${pg.page} of ${pg.totalPages}</span><button ${pg.page>=pg.totalPages?'disabled':''} onclick="window._auditPage++;loadAudit();">Next →</button>` : ''}`
+          : '';
       } catch(e) { document.getElementById('audit-table').innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--revoked);font-size:0.65rem;">${esc(e.message)}</td></tr>`; }
     }
     loadAudit();

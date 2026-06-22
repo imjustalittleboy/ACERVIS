@@ -182,7 +182,7 @@ export default async function handler(req, res) {
 
     if (!csvText || !csvText.trim()) return error(res, 'ACV_400', 'CSV data or JSON batch required');
 
-    const parsed = Papa.parse(csvText.trim(), { header: true, skipEmptyLines: true, transformHeader: h => h.trim().toLowerCase() });
+    const parsed = Papa.parse(csvText.trim(), { header: true, skipEmptyLines: true, transformHeader: h => h.trim().toLowerCase().replace(/\s+/g, '_') });
     if (parsed.errors.length) return error(res, 'ACV_400', 'CSV error: ' + parsed.errors[0].message);
     if (!parsed.data.length) return error(res, 'ACV_400', 'CSV has no data rows');
 

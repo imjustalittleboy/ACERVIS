@@ -648,7 +648,9 @@
     function pg(id, p, cb) {
       const el = document.getElementById(id);
       if (!p || p.totalPages <= 1) { el.innerHTML = ''; return; }
-      el.innerHTML = `<button ${p.page <= 1 ? 'disabled' : ''} onclick="window._gp('${id}',${p.page-1})">← Prev</button><span>Page ${p.page} of ${p.totalPages}</span><button ${p.page >= p.totalPages ? 'disabled' : ''} onclick="window._gp('${id}',${p.page+1})">Next →</button>`;
+      el.innerHTML = p.total > 0 
+        ? `<span style="margin-right:12px;">${p.total} record(s)</span>${p.totalPages > 1 ? `<button ${p.page <= 1 ? 'disabled' : ''} onclick="window._gp('${id}',${p.page-1})">← Prev</button><span>Page ${p.page} of ${p.totalPages}</span><button ${p.page >= p.totalPages ? 'disabled' : ''} onclick="window._gp('${id}',${p.page+1})">Next →</button>` : ''}`
+        : '';
       window._gp = function(i, pg) { if (i === 'cred-pagination') { cp = pg; loadCreds(); } else if (i === 'trans-pagination') { tp = pg; loadTrans(); } };
     }
 

@@ -155,7 +155,7 @@ export default async function handler(req, res) {
 
     return error(res, 'ACV_405', 'Method not allowed', 405);
   } catch (err) {
-    console.error('ACV_CRED_ERROR:', err);
-    return error(res, 'ACV_500', 'Internal server error', 500);
+    console.error('ACV_CRED_ERROR:', err.message, err.stack?.slice(0, 300));
+    return error(res, 'ACV_500', err.message || 'Internal server error', 500);
   }
 }

@@ -166,7 +166,7 @@ export default async function handler(req, res) {
 
       if (!csvText.trim()) return error(res, 'ACV_400', 'Empty CSV data');
 
-      const parsed = Papa.parse(csvText.trim(), { header: true, skipEmptyLines: true });
+      const parsed = Papa.parse(csvText.trim(), { header: true, skipEmptyLines: true, transformHeader: h => h.trim().toLowerCase().replace(/\s+/g, '_') });
 
       if (parsed.errors.length > 0) {
         return error(res, 'ACV_400', 'CSV parse error: ' + parsed.errors[0].message);

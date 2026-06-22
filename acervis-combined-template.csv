@@ -1,0 +1,19 @@
+type,student_name,matric_number,course_name,degree_type,graduation_year,cgpa,course_code,course_title,credit_units,score,grade,semester,session
+STUDENT,John Doe,ADU/2020/001,Computer Science,BSc,2024,4.82,,,,,,,
+SUBJECT,,,,,,,CSC101,Introduction to Programming,3,78,A,First,2020/2021
+SUBJECT,,,,,,,CSC102,Data Structures,3,82,A,First,2020/2021
+SUBJECT,,,,,,,CSC201,Database Systems,3,71,B,Second,2020/2021
+SUBJECT,,,,,,,CSC202,Introduction to Programming,2,72,B,First,2021/2022
+SUBJECT,,,,,,,CSC203,Introduction to Programming,1,71,B,First,2021/2022
+SUBJECT,,,,,,,CSC301,Introduction to Programming,5,82,A,First,2021/2022
+SUBJECT,,,,,,,CSC322,O,2,88,A,Second,2022/2023
+SUBJECT,,,,,,,CSC321,P,3,93,A,Second,2022/2023
+SUBJECT,,,,,,,CSC429,CAJ,1,78,B,Second,2022/2023
+SUBJECT,,,,,,,CSC482,DSH,2,89,A,Second,2022/2023
+SUBJECT,,,,,,,CSC210,SIV,2,81,A,Second,2022/2023
+SUBJECT,,,,,,,CSC539,SOJC,2,99,A,First,2022/2023
+SUBJECT,,,,,,,CSC103,SIHQ,1,88,A,First,2022/2023
+STUDENT,Jane Smith,ADU/2020/002,Mathematics,BSc,2024,4.91,,,,,,,
+SUBJECT,,,,,,,MTH201,Abstract Algebra,3,95,A,First,2021/2022
+SUBJECT,,,,,,,MTH202,Real Analysis,3,88,A,First,2021/2022
+SUBJECT,,,,,,,MTH301,Complex Analysis,3,76,A,Second,2021/2022
