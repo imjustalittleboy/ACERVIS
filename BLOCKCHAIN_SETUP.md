@@ -12,9 +12,10 @@ This guide walks through everything you need to deploy and configure the ACERVIS
 4. [Configure Environment Variables](#4-configure-environment-variables)
 5. [Deploy the Smart Contract](#5-deploy-the-smart-contract)
 6. [Verify the Contract (Polygonscan)](#6-verify-the-contract-polygonscan)
-7. [Create Institutional Wallets](#7-create-institutional-wallets)
-8. [Test the Connection](#8-test-the-connection)
-9. [Troubleshooting](#9-troubleshooting)
+7. [Institution Wallet System — Auto-Generated Per Institution](#7-institution-wallet-system--auto-generated-per-institution)
+8. [Funding Institution Wallets with Gas](#8-funding-institution-wallets-with-gas)
+9. [Test the Connection](#9-test-the-connection)
+10. [Troubleshooting](#10-troubleshooting)
 
 ---
 
@@ -149,8 +150,13 @@ DATABASE_URL=postgresql://user:password@ep-xxxx.us-east-2.aws.neon.tech/acervis?
 PROTOCOL_PEPPER=a6f8c2d1e9b4a73f8c2d1e9b4a73f8c2
 SUPER_ADMIN_SECRET=your-super-secret-here
 
+# --- Key Encryption ---
+# Encrypts institution wallet private keys stored in the database.
+# Generate with: node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+INSTITUTION_KEY_ENCRYPTION_KEY=a6f8c2d1e9b4a73f8c2d1e9b4a73f8c2d1e9b4a73f8c2d1e9b4a73f8c2d1e9b4
+
 # --- Blockchain ---
-# Your deployer wallet's private key (used for Hardhat deployment)
+# Your deployer wallet's private key (used for Hardhat deployment + gas funding)
 PRIVATE_KEY=0x...
 
 # Your Alchemy RPC URL
@@ -158,9 +164,6 @@ ALCHEMY_RPC_URL=https://polygon-amoy.g.alchemy.com/v2/your-api-key
 
 # Will be set after deployment
 CONTRACT_ADDRESS=
-
-# Institution wallet private key (for anchoring hashes from the API)
-INSTITUTION_PRIVATE_KEY=0x...
 ```
 
 > ⚠ **Security:** Never commit `.env` to git. The `.gitignore` already excludes it.
@@ -272,30 +275,21 @@ After verification, you can see the contract at:
 
 ---
 
-## 7. Create Institutional Wallets
+## 7. Institution Wallet System — Auto-Generated Per Institution
 
-Each institution that will anchor credentials on-chain needs:
+ACERVIS automatically generates a unique Ethereum wallet for **every institution** during onboarding. This replaces the old single `INSTITUTION_PRIVATE_KEY` approach.
 
-1. A **Polygon wallet** (address + private key)
-2. The wallet **authorized on the contract** by the Super Admin
-3. Test POL to pay gas fees for anchoring
+### How It Works
 
-### Generate Institution Wallet
+1. **Onboarding**: When the Super Admin creates an institution via the API, a new wallet is generated (`ethers.Wallet.createRandom()`)
+2. **Encryption**: The private key is encrypted with **AES-256-GCM** using `INSTITUTION_KEY_ENCRYPTION_KEY` from `.env`
+3. **Storage**: Only the **wallet address** and **encrypted private key** are stored in the `institutions` DB table
+4. **Signing**: During batch issuance, the backend fetches the institution's key, decrypts it, and signs transactions — **each institution signs with its own wallet**
 
-```bash
-node -e "
-const { ethers } = require('ethers');
-const wallet = ethers.Wallet.createRandom();
-console.log('Institution Wallet');
-console.log('Address:', wallet.address);
-console.log('Private Key:', wallet.privateKey);
-console.log('');
-console.log('Add to your .env or share with the institution:');
-console.log('INSTITUTION_PRIVATE_KEY=' + wallet.privateKey);
-"
-```
+### Authorize Institution Wallets on the Contract
 
-### Authorize on the Contract (via Hardhat Console)
+After onboarding, the Super Admin must authorize each institution's wallet on the smart contract.
+The wallet address is returned in the onboarding response. Run this for each institution:
 
 ```bash
 npx hardhat console --network amoy
@@ -303,55 +297,110 @@ npx hardhat console --network amoy
 
 ```javascript
 const contract = await ethers.getContractAt('AcervisRegistry', '0xYOUR_CONTRACT_ADDRESS');
+
+// Authorize each institution wallet
 const tx = await contract.authorizeInstitution(
-  '0xINSTITUTION_WALLET_ADDRESS',
-  'Admiralty University',
-  10000  // quota
+  '0xINSTITUTION_WALLET_ADDRESS',       // From onboarding response
+  'Admiralty University of Nigeria',     // Institution name
+  10000                                  // On-chain issuance quota (should match DB)
 );
 await tx.wait();
-console.log('Authorized:', tx.hash);
+console.log('✅ Authorized:', tx.hash);
 ```
 
-### Send Test POL to Institution Wallet
+### View Institution Wallets
 
-From your deployer wallet, send enough test POL for gas:
+Use the API to see each institution's wallet:
+
+```bash
+curl -H "x-super-admin-secret: YOUR_SECRET" \
+  https://your-project.vercel.app/api/v1/institutions
+```
+
+Each entry includes `wallet_address`. The private key is never exposed.
+
+---
+
+## 8. Funding Institution Wallets with Gas
+
+Each institution wallet needs POL to pay gas fees for anchoring credential hashes on-chain.
+
+### One-by-One (Manual)
+
+Send POL from your deployer wallet via Hardhat console:
+
+```bash
+npx hardhat console --network amoy
+```
 
 ```javascript
 const deployer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
 const tx = await deployer.sendTransaction({
   to: '0xINSTITUTION_WALLET_ADDRESS',
-  value: ethers.parseEther('0.5')  // 0.5 POL
+  value: ethers.parseEther('0.1')  // enough for ~10,000 anchors
 });
 await tx.wait();
 console.log('Sent:', tx.hash);
 ```
 
----
+### Bulk Distribution (via API)
 
-## 8. Test the Connection
+Super Admin can send POL to all institution wallets at once using the API.
+Only wallets with < 0.005 POL get funded. Default: 0.01 POL per wallet.
+
+```bash
+curl -X POST "https://your-project.vercel.app/api/v1/blockchain?action=fund-gas" \
+  -H "x-super-admin-secret: YOUR_SECRET" \
+  -H "Content-Type: application/json" \
+  -d '{"amount": 0.05}'
+```
+
+**Response:**
+```json
+{
+  "success": true,
+  "summary": { "funded": 4, "skipped": 2, "total": 6 },
+  "results": [
+    { "name": "Admiralty Uni", "address": "0x...", "amount": "0.05", "skipped": false },
+    { "name": "Uni of Lagos", "address": "0x...", "skipped": true, "reason": "Already has sufficient balance" }
+  ]
+}
+```
+
+**How much POL do you need?**
+
+| Operation | Cost per call | Est. for 10,000 anchors |
+|-----------|--------------|------------------------|
+| Anchor 1 credential hash | ~0.00005 POL | 0.5 POL |
+| 0.01 POL sent to wallet | — | Covers ~200 anchors |
+
+Sending **0.1 POL** per institution wallet is a safe starting point.
+
+### Gas Management Notes
+
+- Each credential hash anchoring costs ~0.00005 POL on Amoy (testnet gas is near-zero)
+- Combined CSV (credential + transcript) costs 2 anchors per student → ~0.0001 POL per student
+- The deployer wallet (PRIVATE_KEY in .env) pays for gas distribution
+- Institutions only pay for their own credential anchoring
+- If a wallet runs out, use the `fund-gas` endpoint again
+
+## 9. Test the Connection
 
 ### Via the API
 
 After deploying and setting env vars, make a request to the blockchain status endpoint:
 
 ```bash
-curl -H "x-institution-token: YOUR_TOKEN" https://your-project.vercel.app/api/v1/blockchain
+curl -H "x-institution-token: TOKEN" https://your-project.vercel.app/api/v1/blockchain
 ```
 
-Response should include:
+Response shows the institution's own wallet balance:
 ```json
 {
   "configured": true,
-  "network": {
-    "connected": true,
-    "chain_id": 80002
-  },
-  "contract": {
-    "deployed": true
-  },
-  "wallet": {
-    "balance": "0.5"
-  },
+  "network": { "connected": true, "chain_id": 80002 },
+  "contract": { "deployed": true },
+  "wallet": { "address": "0x...", "balance": "0.01" },
   "pending": 0
 }
 ```
@@ -359,10 +408,9 @@ Response should include:
 ### Via Polygonscan
 
 1. Go to `https://amoy.polygonscan.com/address/YOUR_CONTRACT_ADDRESS`
-2. Click the **Contract** tab
-3. Click **Read Contract**
-4. Call `superAdmin()` — should show your deployer address
-5. Call `institutions(0x...)` with an authorized institution address
+2. Click the **Contract** tab → **Read Contract**
+3. Call `superAdmin()` — should show your deployer address
+4. Call `institutions(0x...)` with an authorized institution address
 
 ---
 

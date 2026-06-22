@@ -16,6 +16,7 @@ CREATE TABLE IF NOT EXISTS institutions (
     seal_blob_url TEXT,
     admin_email VARCHAR(255) NOT NULL,
     wallet_address VARCHAR(42) UNIQUE,
+    encrypted_private_key TEXT,             -- AES-256-GCM encrypted institution wallet key
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     last_activity_at TIMESTAMP WITH TIME ZONE

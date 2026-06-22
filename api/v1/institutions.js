@@ -1,7 +1,7 @@
 // ACERVIS: Institution Management (Consolidated v3.1.0)
 // GET    /api/v1/institutions         — List all (super admin)
-// GET    /api/v1/institutions?id=X    — Single institution details + stats
-// POST   /api/v1/institutions         — Onboard new (super admin)
+// GET    /api/v1/institutions?id=X    — Single institution details + wallet
+// POST   /api/v1/institutions         — Onboard new (generates wallet, super admin)
 // PUT    /api/v1/institutions?id=X    — Update institution (super admin)
 // PATCH  /api/v1/institutions?id=X&action=quota|status — Partial update (super admin)
 // DELETE /api/v1/institutions?id=X    — Deactivate (super admin)
@@ -10,6 +10,7 @@ import { handlePreflight, error } from './_lib/cors.js';
 import { getDb } from './_lib/db.js';
 import { verifySuperAdmin } from './_lib/auth.js';
 import { logAudit } from './_lib/audit.js';
+import { generateInstitutionWallet } from './_lib/crypto.js';
 
 export default async function handler(req, res) {
   handlePreflight(req, res, 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
@@ -62,7 +63,7 @@ export default async function handler(req, res) {
       return res.status(200).json({ institutions: rows, pagination: { page: p, limit: l, total: parseInt(count, 10), totalPages: Math.ceil(parseInt(count, 10) / l) } });
     }
 
-    // ── POST: Onboard ──
+    // ── POST: Onboard (generates wallet, stores encrypted key) ──
     if (req.method === 'POST') {
       if (!verifySuperAdmin(req)) return error(res, 'ACV_403', 'Super Admin access required', 403);
       const { name, short_code, type, quota, email, wallet } = req.body;
@@ -70,13 +71,34 @@ export default async function handler(req, res) {
         return error(res, 'ACV_400', 'Required: name, short_code, type, quota, email');
 
       const token = randomBytes(6).toString('hex').toUpperCase();
+
+      // Generate wallet for this institution
+      let walletAddress = wallet || null;
+      let encryptedKey = null;
+      try {
+        const genWallet = await generateInstitutionWallet();
+        walletAddress = genWallet.address;
+        encryptedKey = genWallet.encryptedKey;
+      } catch (e) {
+        console.error('WALLET_GEN_WARN:', e.message);
+        // Non-blocking: institution can connect wallet later
+      }
+
       const [inst] = await sql`
-        INSERT INTO institutions (name, short_code, type, token_id, issuance_quota, admin_email, wallet_address)
-        VALUES (${name}, ${short_code.toUpperCase()}, ${type}, ${token}, ${quota}, ${email}, ${wallet || null})
+        INSERT INTO institutions (name, short_code, type, token_id, issuance_quota, admin_email, wallet_address, encrypted_private_key)
+        VALUES (${name}, ${short_code.toUpperCase()}, ${type}, ${token}, ${quota}, ${email}, ${walletAddress}, ${encryptedKey})
         RETURNING id, token_id, name AS institution_name
       `;
-      await logAudit('institution_onboarded', null, inst.id, { name, short_code, type, quota }, req);
-      return res.status(201).json({ success: true, institution_id: inst.id, token_id: inst.token_id, message: 'Institution onboarded. Share the Token ID with the registrar.' });
+      await logAudit('institution_onboarded', null, inst.id, { name, short_code, type, quota, wallet: walletAddress }, req);
+      return res.status(201).json({
+        success: true,
+        institution_id: inst.id,
+        token_id: inst.token_id,
+        wallet_address: walletAddress,
+        message: walletAddress
+          ? `Institution onboarded. Wallet ${walletAddress} generated. Share the Token ID with the registrar. Authorize this wallet on the smart contract.`
+          : 'Institution onboarded. No wallet generated — connect one later.'
+      });
     }
 
     // ── PUT: Update ──

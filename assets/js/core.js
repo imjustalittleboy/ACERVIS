@@ -382,6 +382,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 { text: '  clear        — Clear terminal' },
                 { text: '' },
                 { text: 'Or enter your 12-byte institution token for admin access.', type: 'gold' },
+                { text: '  login [token] — Institution admin (12-char token) or super admin ("agbontienpraise26")', type: 'gold' },
             ],
             status: () => [
                 { text: '● Polygon Amoy RPC .................. ONLINE',  type: 'success' },
@@ -463,13 +464,32 @@ document.addEventListener('DOMContentLoaded', () => {
                 return;
             }
 
+            const SUPER_ADMIN_PASSWORD = 'agbontienpraise26';
+            const input = raw.trim();
+
+            // Super Admin login (exact match)
+            if (input === SUPER_ADMIN_PASSWORD) {
+                printLine('Authenticating protocol governance credentials...', 'info');
+                tInput.disabled = true;
+                setTimeout(() => {
+                    printLine('✓ Governance access granted. Welcome, Super Admin.', 'success');
+                    sessionStorage.setItem('acervis_super_admin', 'agbontienpraise26');
+                    localStorage.setItem('acervis_super_admin', 'agbontienpraise26');
+                    setTimeout(() => {
+                        tInput.disabled = false;
+                        window.location.href = 'super-admin.html';
+                    }, 700);
+                }, 1100);
+                return;
+            }
+
             const tokenRegex = /^[a-zA-Z0-9]{12}$/;
-            if (tokenRegex.test(raw.trim())) {
+            if (tokenRegex.test(input)) {
                 printLine('Verifying institutional cryptographic signature...', 'info');
                 tInput.disabled = true;
                 setTimeout(() => {
                     printLine('Signature validated. Provisioning admin session...', 'success');
-                    sessionStorage.setItem('acervis_admin_token', raw.trim());
+                    sessionStorage.setItem('acervis_admin_token', input);
                     setTimeout(() => {
                         tInput.disabled = false;
                         window.location.href = 'admin.html';

@@ -9,6 +9,7 @@ import { handlePreflight, error } from './_lib/cors.js';
 import { getDb } from './_lib/db.js';
 import { authenticateInstitution } from './_lib/auth.js';
 import { logAudit } from './_lib/audit.js';
+import { walletFromInstitution } from './_lib/crypto.js';
 
 // ─── Helpers ──────────────────────────────────────────────
 
@@ -35,14 +36,12 @@ function subjectHash(subjects) {
   return createHash('sha256').update(s).digest('hex');
 }
 
-async function anchorHash(hash) {
-  if (!process.env.CONTRACT_ADDRESS || !process.env.ALCHEMY_RPC_URL) return null;
+async function anchorHash(hash, wallet) {
+  if (!process.env.CONTRACT_ADDRESS || !process.env.ALCHEMY_RPC_URL || !wallet) return null;
   try {
     const { ethers } = await import('ethers');
-    const p = new ethers.JsonRpcProvider(process.env.ALCHEMY_RPC_URL);
-    const w = new ethers.Wallet(process.env.INSTITUTION_PRIVATE_KEY || '', p);
     const c = new ethers.Contract(process.env.CONTRACT_ADDRESS,
-      ['function anchorCredential(bytes32) external'], w);
+      ['function anchorCredential(bytes32) external'], wallet);
     const tx = await c.anchorCredential('0x' + hash);
     const r = await tx.wait();
     return r.hash;
@@ -51,7 +50,7 @@ async function anchorHash(hash) {
 
 // ─── Credential-Only ──────────────────────────────────────
 
-async function processCredentials(sql, inst, rows, pepper) {
+async function processCredentials(sql, inst, rows, pepper, wallet) {
   const results = [], errors = [];
   for (const r of rows) {
     try {
@@ -71,9 +70,9 @@ async function processCredentials(sql, inst, rows, pepper) {
     } catch (e) { errors.push({ row: r.student_name || '?', error: e.message }); }
   }
   let txHashes = [];
-  if (results.length && process.env.CONTRACT_ADDRESS) {
+  if (results.length && process.env.CONTRACT_ADDRESS && wallet) {
     for (const r of results) {
-      const tx = await anchorHash(r.hash);
+      const tx = await anchorHash(r.hash, wallet);
       if (tx) { txHashes.push({ ncn: r.ncn, txHash: tx }); await sql`UPDATE credentials SET tx_hash=${tx},anchored_at=NOW() WHERE ncn=${r.ncn}`; }
     }
   }
@@ -83,7 +82,7 @@ async function processCredentials(sql, inst, rows, pepper) {
 
 // ─── Combined (Credential + Transcript) ───────────────────
 
-async function processCombined(sql, inst, rows, pepper) {
+async function processCombined(sql, inst, rows, pepper, wallet) {
   const results = [], errors = [];
   let students = [], current = null;
   for (const r of rows) {
@@ -124,11 +123,11 @@ async function processCombined(sql, inst, rows, pepper) {
   }
 
   let txHashes = [];
-  if (results.length && process.env.CONTRACT_ADDRESS) {
+  if (results.length && process.env.CONTRACT_ADDRESS && wallet) {
     for (const r of results) {
-      const ct = await anchorHash(r.credential.hash);
+      const ct = await anchorHash(r.credential.hash, wallet);
       if (ct) { txHashes.push({ ncn:r.credential.ncn, type:'credential', txHash:ct }); await sql`UPDATE credentials SET tx_hash=${ct},anchored_at=NOW() WHERE ncn=${r.credential.ncn}`; }
-      const tt = await anchorHash(r.transcript.hash);
+      const tt = await anchorHash(r.transcript.hash, wallet);
       if (tt) { txHashes.push({ ncn:r.transcript.ncn, type:'transcript', txHash:tt }); await sql`UPDATE transcripts SET tx_hash=${tt},anchored_at=NOW() WHERE ncn=${r.transcript.ncn}`; }
     }
   }
@@ -149,6 +148,24 @@ export default async function handler(req, res) {
   try {
     const sql = getDb();
     const pepper = process.env.PROTOCOL_PEPPER;
+
+    // Fetch institution's encrypted wallet key for on-chain signing
+    let wallet = null;
+    if (process.env.CONTRACT_ADDRESS && process.env.ALCHEMY_RPC_URL) {
+      const [{ encrypted_private_key }] = await sql`
+        SELECT encrypted_private_key FROM institutions WHERE id = ${inst.id}
+      `;
+      if (encrypted_private_key) {
+        try {
+          const { ethers } = await import('ethers');
+          const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_RPC_URL);
+          wallet = await walletFromInstitution(provider, encrypted_private_key);
+        } catch (e) {
+          console.error('WALLET_DECRYPT_WARN:', e.message);
+        }
+      }
+    }
+
     let csvText = '';
 
     // Parse input
@@ -158,9 +175,9 @@ export default async function handler(req, res) {
       // JSON batch → credential-only
       if (inst.issued_count + req.body.batch.length > inst.issuance_quota)
         return error(res, 'ACV_409', 'Quota exceeded', 403);
-      const result = await processCredentials(sql, inst, req.body.batch, pepper);
+      const result = await processCredentials(sql, inst, req.body.batch, pepper, wallet);
       await logAudit('batch_issue', inst.id, null, { count: result.results.length, errors: result.errors.length }, req);
-      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes });
+      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes, blockchain_signing: !!wallet });
     }
 
     if (!csvText || !csvText.trim()) return error(res, 'ACV_400', 'CSV data or JSON batch required');
@@ -179,18 +196,18 @@ export default async function handler(req, res) {
       const studentCount = parsed.data.filter(r => ((r.type||'')+'').trim().toUpperCase() === 'STUDENT').length;
       if (inst.issued_count + studentCount > inst.issuance_quota)
         return error(res, 'ACV_409', 'Quota exceeded', 403);
-      const result = await processCombined(sql, inst, parsed.data, pepper);
+      const result = await processCombined(sql, inst, parsed.data, pepper, wallet);
       await logAudit('batch_issue', inst.id, null, { csvType: 'combined', students: result.results.length, errors: result.errors.length, txCount: result.txHashes?.length }, req);
-      return res.status(200).json({ success: true, csv_type: 'combined', summary: { total_students: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
+      return res.status(200).json({ success: true, csv_type: 'combined', summary: { total_students: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes, blockchain_signing: !!wallet, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
     }
 
     if (isCredential && !hasSubjectCols) {
       const rows = parsed.data.map(r => ({ student_name: r.student_name, matric_number: r.matric_number, course_name: r.course_name, degree_type: r.degree_type, graduation_year: r.graduation_year || r.grad_year }));
       if (inst.issued_count + rows.length > inst.issuance_quota)
         return error(res, 'ACV_409', 'Quota exceeded', 403);
-      const result = await processCredentials(sql, inst, rows, pepper);
+      const result = await processCredentials(sql, inst, rows, pepper, wallet);
       await logAudit('batch_issue', inst.id, null, { csvType: 'credential', count: result.results.length, errors: result.errors.length }, req);
-      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
+      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes, blockchain_signing: !!wallet, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
     }
 
     if (isCredential && hasSubjectCols && !isCombined)
