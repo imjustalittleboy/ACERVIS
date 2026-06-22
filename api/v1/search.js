@@ -2,7 +2,7 @@
 // POST /api/v1/search
 // Body: { q: "search term", type: "all"|"credentials"|"transcripts", page: 1, limit: 10 }
 import { handlePreflight, error } from './_lib/cors.js';
-import { getDb, where } from './_lib/db.js';
+import { getDb, frag } from './_lib/db.js';
 import { authenticateInstitution, verifySuperAdmin } from './_lib/auth.js';
 
 export default async function handler(req, res) {
@@ -32,43 +32,41 @@ export default async function handler(req, res) {
 
     // Search credentials
     if (scope === 'all' || scope === 'credentials') {
-      const searchTerm2 = `%${q.trim()}%`;
-      const cCond = {};
-      cCond['_raw'] = { sql: `(c.student_name ILIKE $1 OR c.matric_number ILIKE $2 OR c.ncn ILIKE $3)`, params: [searchTerm2, searchTerm2, searchTerm2] };
-      if (institution) cCond['c.institution_id'] = institution.id;
-      const cw = where(cCond);
-      const cwc = cw.text ? `WHERE ${cw.text}` : '';
+      let credConditions = frag`(c.student_name ILIKE ${searchTerm} OR c.matric_number ILIKE ${searchTerm} OR c.ncn ILIKE ${searchTerm})`;
+      if (institution) credConditions = frag`${credConditions} AND c.institution_id = ${institution.id}`;
 
-      const credRows = await sql.unsafe(
-        `SELECT c.ncn, c.student_name, c.matric_number, c.course_name, c.degree_type, c.grad_year, c.status,
+      const credCount = await sql`SELECT COUNT(*) FROM credentials c WHERE ${credConditions}`;
+      const credTotal = parseInt(credCount[0].count, 10);
+
+      const credRows = await sql`
+        SELECT c.ncn, c.student_name, c.matric_number, c.course_name, c.degree_type, c.grad_year, c.status,
           i.name AS institution_name, i.short_code
         FROM credentials c JOIN institutions i ON c.institution_id = i.id
-        ${cwc}
-        ORDER BY c.issued_at DESC LIMIT ${l} OFFSET ${offset}`,
-        cw.params
-      );
-      results.credentials = { total: credRows.length, results: credRows };
+        WHERE ${credConditions}
+        ORDER BY c.issued_at DESC LIMIT ${l} OFFSET ${offset}
+      `;
+
+      results.credentials = { total: credTotal, results: credRows };
     }
 
     // Search transcripts
     if (scope === 'all' || scope === 'transcripts') {
-      const searchTerm3 = `%${q.trim()}%`;
-      const tCond = {};
-      tCond['_raw'] = { sql: `(t.student_name ILIKE $1 OR t.matric_number ILIKE $2 OR t.ncn ILIKE $3)`, params: [searchTerm3, searchTerm3, searchTerm3] };
-      if (institution) tCond['t.institution_id'] = institution.id;
-      const tw = where(tCond);
-      const twc = tw.text ? `WHERE ${tw.text}` : '';
+      let transConditions = frag`(t.student_name ILIKE ${searchTerm} OR t.matric_number ILIKE ${searchTerm} OR t.ncn ILIKE ${searchTerm})`;
+      if (institution) transConditions = frag`${transConditions} AND t.institution_id = ${institution.id}`;
 
-      const transRows = await sql.unsafe(
-        `SELECT t.ncn, t.student_name, t.matric_number, t.course_name, t.degree_type, t.graduation_year, t.cgpa, t.status,
+      const transCount = await sql`SELECT COUNT(*) FROM transcripts t WHERE ${transConditions}`;
+      const transTotal = parseInt(transCount[0].count, 10);
+
+      const transRows = await sql`
+        SELECT t.ncn, t.student_name, t.matric_number, t.course_name, t.degree_type, t.graduation_year, t.cgpa, t.status,
           (SELECT COUNT(*) FROM transcript_subjects WHERE transcript_id = t.id) AS subjects_count,
           i.name AS institution_name, i.short_code
         FROM transcripts t JOIN institutions i ON t.institution_id = i.id
-        ${twc}
-        ORDER BY t.issued_at DESC LIMIT ${l} OFFSET ${offset}`,
-        tw.params
-      );
-      results.transcripts = { total: transRows.length, results: transRows };
+        WHERE ${transConditions}
+        ORDER BY t.issued_at DESC LIMIT ${l} OFFSET ${offset}
+      `;
+
+      results.transcripts = { total: transTotal, results: transRows };
     }
 
     // Search institutions (super admin only)
