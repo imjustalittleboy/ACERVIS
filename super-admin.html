@@ -3,130 +3,56 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Super Admin | ACERVIS Protocol</title>
+    <title>Super Admin | ACERVIS Protocol Governance</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/void.css">
     <style>
-        .admin-grid {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            min-height: 100vh;
-        }
-        .sidebar {
-            background: var(--abyss);
-            border-right: 1px solid var(--border-subtle);
-            padding: 40px 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 32px;
-        }
-        .main-content {
-            padding: 60px;
-            background: var(--void);
-            overflow-y: auto;
-        }
-        .institution-form {
-            background: var(--abyss-raised);
-            border: 1px solid var(--border-subtle);
-            border-radius: 16px;
-            padding: 32px;
-            max-width: 640px;
-            margin-top: 40px;
-        }
-        .form-group {
-            margin-bottom: 20px;
-        }
-        .form-group label {
-            display: block;
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.1em;
-            margin-bottom: 8px;
-        }
-        .form-group input, .form-group select {
-            width: 100%;
-            background: var(--void);
-            border: 1px solid var(--border-muted);
-            padding: 12px;
-            border-radius: 8px;
-            color: white;
-            font-family: inherit;
-            font-size: 0.85rem;
-        }
-        .form-group input:focus, .form-group select:focus {
-            border-color: var(--gold);
-            outline: none;
-        }
-        .form-row {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-        .table-container {
-            margin-top: 60px;
-            background: var(--abyss-raised);
-            border: 1px solid var(--border-subtle);
-            border-radius: 16px;
-            overflow: hidden;
-        }
-        .table-container h2 {
-            padding: 24px 24px 0;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
-        }
-        th {
-            background: var(--abyss);
-            text-align: left;
-            padding: 16px 20px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-        td {
-            padding: 14px 20px;
-            border-top: 1px solid var(--border-faint);
-            color: var(--text-mid);
-            font-size: 0.75rem;
-        }
-        .token-display {
-            background: var(--void);
-            border: 1px solid var(--border-gold);
-            border-radius: 8px;
-            padding: 16px;
-            margin-top: 20px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 1.2rem;
-            text-align: center;
-            letter-spacing: 0.2em;
-            color: var(--gold);
-            display: none;
-        }
+        :root { --sidebar-w: 260px; }
+        .admin-grid { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; }
+        .sidebar { background: var(--abyss); border-right: 1px solid var(--border-subtle); padding: 32px 20px; display: flex; flex-direction: column; gap: 24px; position: fixed; width: var(--sidebar-w); height: 100vh; z-index: 10; }
+        .main-content { margin-left: var(--sidebar-w); padding: 48px; background: var(--void); overflow-y: auto; min-height: 100vh; }
+        .sidebar .nav-logo { font-size: 1.2rem; }
+        .nav-tab { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 10px; cursor: pointer; font-size: 0.75rem; color: var(--text-mid); transition: all 0.2s; border: none; background: none; width: 100%; text-align: left; font-family: inherit; }
+        .nav-tab:hover { background: var(--glass-light); color: var(--text-high); }
+        .nav-tab.active { background: var(--gold-glow-sm); color: var(--gold); border: 1px solid var(--border-gold); }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .stat-card-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 14px; margin-bottom: 32px; }
+        .stat-card { background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 20px; }
+        .stat-card .stat-label { display: block; font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
+        .stat-card .stat-num { font-size: 1.8rem; font-weight: 600; font-family: 'Cormorant Garamond', serif; }
+        .table-wrap { margin-top: 24px; background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; }
+        .table-wrap h3 { padding: 20px 24px 0; font-size: 1rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th { background: var(--abyss); text-align: left; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+        td { padding: 12px 16px; border-top: 1px solid var(--border-faint); color: var(--text-mid); }
+        td .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.55rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; }
+        .badge.active { background: rgba(46,204,140,0.12); color: var(--success); border: 1px solid rgba(46,204,140,0.25); }
+        .badge.inactive { background: rgba(229,57,53,0.12); color: var(--revoked); border: 1px solid rgba(229,57,53,0.25); }
+        .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+        .toolbar input, .toolbar select { background: var(--abyss-raised); border: 1px solid var(--border-muted); padding: 8px 12px; border-radius: 8px; color: white; font-size: 0.75rem; font-family: inherit; }
+        .toolbar input:focus, .toolbar select:focus { border-color: var(--gold); outline: none; }
+        .search-input { min-width: 200px; }
+        .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; padding: 16px; font-size: 0.7rem; color: var(--text-muted); }
+        .pagination button { background: var(--abyss); border: 1px solid var(--border-faint); padding: 6px 14px; border-radius: 6px; color: var(--text-mid); cursor: pointer; font-size: 0.65rem; }
+        .pagination button:disabled { opacity: 0.3; cursor: default; }
+        .inline-form { background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 28px; max-width: 640px; margin-top: 24px; }
+        .form-group { margin-bottom: 16px; }
+        .form-group label { display: block; font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 6px; }
+        .form-group input, .form-group select { width: 100%; background: var(--void); border: 1px solid var(--border-muted); padding: 10px 12px; border-radius: 8px; color: white; font-family: inherit; font-size: 0.8rem; }
+        .form-group input:focus, .form-group select:focus { border-color: var(--gold); outline: none; }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+        .token-display { background: var(--void); border: 1px solid var(--border-gold); border-radius: 10px; padding: 16px; margin-top: 16px; font-family: 'JetBrains Mono', monospace; font-size: 1rem; text-align: center; letter-spacing: 0.2em; color: var(--gold); display: none; }
         .token-display.visible { display: block; }
-        .token-label {
-            font-size: 0.6rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 0.15em;
-            display: block;
-            margin-bottom: 8px;
-        }
-        .response-msg {
-            font-size: 0.75rem;
-            margin-top: 12px;
-            padding: 12px;
-            border-radius: 8px;
-            display: none;
-        }
+        .token-display .tlabel { font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; display: block; margin-bottom: 6px; }
+        .response-msg { font-size: 0.7rem; margin-top: 10px; padding: 10px; border-radius: 8px; display: none; }
         .response-msg.visible { display: block; }
         .response-msg.success { background: rgba(46,204,140,0.1); color: var(--success); border: 1px solid rgba(46,204,140,0.2); }
         .response-msg.error { background: rgba(229,57,53,0.1); color: var(--revoked); border: 1px solid rgba(229,57,53,0.2); }
+        @media (max-width: 768px) { :root { --sidebar-w: 0px; } .sidebar { display: none; } .main-content { margin-left: 0; padding: 24px; } }
     </style>
 </head>
 <body class="bg-black text-white">
@@ -136,214 +62,339 @@
     <div class="admin-grid">
         <aside class="sidebar">
             <div class="nav-logo">ACERVIS</div>
-            <nav style="display: flex; flex-direction: column; gap: 12px;">
-                <a href="#" class="nav-link active">Global Overview</a>
-                <a href="#" class="nav-link">Manage Institutions</a>
-                <a href="#" class="nav-link">Network Governance</a>
-                <a href="#" class="nav-link">System Audit</a>
+            <nav style="display:flex;flex-direction:column;gap:4px;">
+                <button class="nav-tab active" data-tab="overview">📊 Overview</button>
+                <button class="nav-tab" data-tab="onboard">🏛 Onboard Institution</button>
+                <button class="nav-tab" data-tab="institutions">📋 All Institutions</button>
+                <button class="nav-tab" data-tab="audit">📜 Audit Log</button>
             </nav>
-            <div style="margin-top: auto;">
-                <div class="footer-meta-item"><span>SUPER_ADMIN:</span> <span id="sa-status">Inactive</span></div>
-                <a href="index.html" class="btn btn-ghost" style="margin-top: 20px; width: 100%;">Exit Console</a>
+            <div class="sidebar-footer" style="margin-top:auto;padding-top:16px;border-top:1px solid var(--border-faint);">
+                <div style="font-size:0.55rem;color:var(--text-faint);font-family:'JetBrains Mono',monospace;">SUPER_ADMIN: <span id="sa-status" style="color:var(--success);">Active</span></div>
+                <a href="index.html" class="btn btn-ghost" style="width:100%;margin-top:8px;font-size:0.7rem;padding:8px;">Exit Console</a>
             </div>
         </aside>
 
         <main class="main-content">
-            <div class="reveal">
+            <!-- ═══ Tab: Overview ═══ -->
+            <section class="tab-content active" id="tab-overview">
                 <div class="eyebrow">Protocol Governance</div>
-                <h1 class="section-title">Institutional <em>Onboarding</em></h1>
-                <p class="section-body">Create a new institutional profile and allocate issuance quotas.</p>
-            </div>
+                <h1 class="section-title">Network <em>Overview</em></h1>
+                <p class="section-body">Global statistics across the ACERVIS network.</p>
+                <div class="stat-card-row" id="global-stats">
+                    <div class="stat-card"><span class="stat-label">Institutions</span><div class="stat-num" id="gs-institutions">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Active Inst.</span><div class="stat-num" id="gs-active-inst">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Credentials</span><div class="stat-num" id="gs-credentials">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Active Certs</span><div class="stat-num" id="gs-active-creds">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Revoked</span><div class="stat-num" id="gs-revoked">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Transcripts</span><div class="stat-num" id="gs-transcripts">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Verifications</span><div class="stat-num" id="gs-verifications">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Last 24h</span><div class="stat-num" id="gs-verif-24h">—</div></div>
+                </div>
 
-            <form id="onboard-form" class="institution-form reveal delay-100">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Institution Name</label>
-                        <input type="text" id="inst-name" placeholder="e.g. Admiralty University of Nigeria" required>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                    <div class="table-wrap"><h3>Top Institutions</h3>
+                        <table><thead><tr><th>Institution</th><th>Code</th><th>Credentials</th></tr></thead>
+                        <tbody id="top-inst-table"><tr><td colspan="3" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
                     </div>
-                    <div class="form-group">
-                        <label>Short Code</label>
-                        <input type="text" id="inst-short-code" placeholder="e.g. ADUN" maxlength="10" required>
-                        <span style="font-size:0.55rem;color:var(--text-faint);margin-top:4px;display:block;">Used in NCN format: SHORT-YEAR-HASH</span>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Institution Type</label>
-                        <select id="inst-type" required>
-                            <option value="">Select type...</option>
-                            <option value="University">University (BSc, BA, BEd)</option>
-                            <option value="Polytechnic">Polytechnic (OND, HND)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>Issuance Quota</label>
-                        <input type="number" id="inst-quota" placeholder="e.g. 10000" min="1" required>
-                    </div>
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>Admin Email</label>
-                        <input type="email" id="inst-email" placeholder="registrar@university.edu.ng" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Wallet Address (Polygon)</label>
-                        <input type="text" id="inst-wallet" placeholder="0x..." pattern="^0x[a-fA-F0-9]{40}$">
-                        <span style="font-size:0.55rem;color:var(--text-faint);margin-top:4px;display:block;">Optional: Authorized wallet for on-chain anchoring</span>
+                    <div class="table-wrap"><h3>Monthly Credential Trend (12mo)</h3>
+                        <table><thead><tr><th>Month</th><th>Issued</th></tr></thead>
+                        <tbody id="monthly-trend-table"><tr><td colspan="2" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
                     </div>
                 </div>
 
-                <div class="token-display" id="token-display">
-                    <span class="token-label">Institutional Token — Share with Registrar</span>
-                    <div id="token-value"></div>
+                <div class="table-wrap" style="margin-top:20px;"><h3>Recent Network Activity</h3>
+                    <table><thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Details</th></tr></thead>
+                    <tbody id="recent-activity-table"><tr><td colspan="4" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
                 </div>
-                <div id="form-response" class="response-msg"></div>
+            </section>
 
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 20px;" id="onboard-btn">
-                    Authorize Institution
-                </button>
-            </form>
+            <!-- ═══ Tab: Onboard ═══ -->
+            <section class="tab-content" id="tab-onboard">
+                <div class="eyebrow">Institutional Onboarding</div>
+                <h1 class="section-title">Authorize a New <em>Institution</em></h1>
+                <form class="inline-form" id="onboard-form">
+                    <div class="form-row">
+                        <div class="form-group"><label>Institution Name</label><input type="text" id="inst-name" placeholder="e.g. Admiralty University" required></div>
+                        <div class="form-group"><label>Short Code</label><input type="text" id="inst-short-code" placeholder="e.g. ADUN" maxlength="10" required></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Type</label><select id="inst-type"><option value="University">University</option><option value="Polytechnic">Polytechnic</option></select></div>
+                        <div class="form-group"><label>Issuance Quota</label><input type="number" id="inst-quota" placeholder="e.g. 10000" min="1" required></div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group"><label>Admin Email</label><input type="email" id="inst-email" placeholder="registrar@uni.edu.ng" required></div>
+                        <div class="form-group"><label>Wallet (Polygon)</label><input type="text" id="inst-wallet" placeholder="0x..."></div>
+                    </div>
+                    <div class="token-display" id="token-display"><span class="tlabel">Institutional Token — Share with Registrar</span><div id="token-value"></div></div>
+                    <div id="form-response" class="response-msg"></div>
+                    <button type="submit" class="btn btn-primary" style="width:100%;margin-top:12px;" id="onboard-btn">Authorize Institution</button>
+                </form>
+            </section>
 
-            <div class="table-container reveal delay-200">
-                <h2 class="section-title" style="font-size: 1.2rem; padding: 24px 24px 0;">Authorized Institutions</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Institution</th>
-                            <th>Short Code</th>
-                            <th>Type</th>
-                            <th>Quota</th>
-                            <th>Issued</th>
-                            <th>Status</th>
-                            <th>Token</th>
-                        </tr>
-                    </thead>
-                    <tbody id="institutions-table-body">
-                        <tr>
-                            <td colspan="7" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No institutions loaded. Create one above.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <!-- ═══ Tab: Institutions ═══ -->
+            <section class="tab-content" id="tab-institutions">
+                <div class="eyebrow">Institution Management</div>
+                <h1 class="section-title">All <em>Institutions</em></h1>
+                <div class="toolbar">
+                    <input class="search-input" id="inst-search-input" placeholder="Search by name or short code...">
+                    <select id="inst-status-filter"><option value="">All</option><option value="active">Active</option><option value="inactive">Inactive</option></select>
+                    <button class="btn btn-primary" id="inst-search-btn" style="font-size:0.65rem;padding:8px 16px;">Refresh</button>
+                </div>
+                <div class="table-wrap">
+                    <table><thead><tr><th>Name</th><th>Code</th><th>Type</th><th>Quota</th><th>Issued</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="inst-table-body"><tr><td colspan="7" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
+                    </table>
+                    <div class="pagination" id="inst-pagination"></div>
+                </div>
+            </section>
+
+            <!-- ═══ Tab: Audit ═══ -->
+            <section class="tab-content" id="tab-audit">
+                <div class="eyebrow">System Audit</div>
+                <h1 class="section-title">Network <em>Logs</em></h1>
+                <div class="toolbar">
+                    <select id="audit-action-filter">
+                        <option value="">All actions</option>
+                        <option value="batch_issue">batch_issue</option>
+                        <option value="institution_onboarded">institution_onboarded</option>
+                        <option value="quota_updated">quota_updated</option>
+                        <option value="credential_revoked">credential_revoked</option>
+                        <option value="verify_verified">verify_verified</option>
+                        <option value="credential_activated">credential_activated</option>
+                    </select>
+                    <button class="btn btn-primary" id="audit-refresh-btn" style="font-size:0.65rem;padding:8px 16px;">Refresh</button>
+                </div>
+                <div class="table-wrap">
+                    <table><thead><tr><th>Time</th><th>Action</th><th>Actor</th><th>Target</th><th>Metadata</th><th>IP</th></tr></thead>
+                        <tbody id="audit-table-body"><tr><td colspan="6" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
+                    </table>
+                    <div class="pagination" id="audit-pagination"></div>
+                </div>
+            </section>
         </main>
     </div>
 
     <script src="assets/js/core.js"></script>
     <script>
-        (function() {
-            // Validate admin session
-            const token = sessionStorage.getItem('acervis_admin_token');
-            const saMarker = localStorage.getItem('acervis_super_admin');
-            if (!saMarker) {
-                const secret = prompt('Enter Super Admin governance secret:');
-                if (secret && secret.length > 3) {
-                    localStorage.setItem('acervis_super_admin', secret);
-                    document.getElementById('sa-status').textContent = 'Active';
-                } else {
-                    window.location.href = 'index.html';
-                }
-            } else {
-                document.getElementById('sa-status').textContent = 'Active';
-            }
+    (function() {
+        // ── Auth ──
+        const SA_SECRET = sessionStorage.getItem('acervis_super_admin') || localStorage.getItem('acervis_super_admin');
+        if (!SA_SECRET) {
+            const secret = prompt('Enter Super Admin governance secret:');
+            if (secret && secret.length > 3) {
+                localStorage.setItem('acervis_super_admin', secret);
+                sessionStorage.setItem('acervis_super_admin', secret);
+            } else { window.location.href = 'index.html'; return; }
+        }
 
-            // Load institutions (GET not available, so we'll populate from onboard responses)
-            const storedInstitutions = JSON.parse(localStorage.getItem('acervis_institutions') || '[]');
+        const SA_HEADERS = { 'x-super-admin-secret': (sessionStorage.getItem('acervis_super_admin') || localStorage.getItem('acervis_super_admin')) };
 
-            function renderInstitutions() {
-                const tbody = document.getElementById('institutions-table-body');
-                if (storedInstitutions.length === 0) {
-                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No institutions onboarded yet.</td></tr>';
-                    return;
-                }
-                tbody.innerHTML = storedInstitutions.map(inst => `
-                    <tr>
-                        <td>${escapeHtml(inst.name)}</td>
-                        <td class="mono">${escapeHtml(inst.short_code || '—')}</td>
-                        <td>${escapeHtml(inst.type)}</td>
-                        <td>${inst.quota.toLocaleString()}</td>
-                        <td>0</td>
-                        <td><span class="status-badge badge-verified">Active</span></td>
-                        <td class="mono" style="font-size:0.65rem;">${escapeHtml(inst.token || '—')}</td>
-                    </tr>
-                `).join('');
-            }
-
-            renderInstitutions();
-
-            document.getElementById('onboard-form').addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const btn = document.getElementById('onboard-btn');
-                const responseDiv = document.getElementById('form-response');
-                const tokenDisplay = document.getElementById('token-display');
-                const tokenValue = document.getElementById('token-value');
-
-                btn.disabled = true;
-                btn.textContent = '⟳ Processing...';
-                responseDiv.classList.remove('visible', 'success', 'error');
-                tokenDisplay.classList.remove('visible');
-
-                const body = {
-                    name: document.getElementById('inst-name').value.trim(),
-                    short_code: document.getElementById('inst-short-code').value.trim().toUpperCase(),
-                    type: document.getElementById('inst-type').value,
-                    quota: parseInt(document.getElementById('inst-quota').value),
-                    email: document.getElementById('inst-email').value.trim(),
-                    wallet: document.getElementById('inst-wallet').value.trim() || undefined
-                };
-
-                const secret = localStorage.getItem('acervis_super_admin');
-
-                try {
-                    const res = await fetch('/api/v1/onboard', {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            'x-super-admin-secret': secret
-                        },
-                        body: JSON.stringify(body)
-                    });
-
-                    const data = await res.json();
-
-                    if (res.ok && data.success) {
-                        responseDiv.textContent = '✓ Institution onboarded successfully!';
-                        responseDiv.className = 'response-msg visible success';
-
-                        tokenValue.textContent = data.token_id;
-                        tokenDisplay.classList.add('visible');
-
-                        // Add to local list
-                        storedInstitutions.push({
-                            name: body.name,
-                            short_code: body.short_code,
-                            type: body.type,
-                            quota: body.quota,
-                            token: data.token_id
-                        });
-                        localStorage.setItem('acervis_institutions', JSON.stringify(storedInstitutions));
-                        renderInstitutions();
-
-                        // Reset form
-                        document.getElementById('onboard-form').reset();
-                    } else {
-                        responseDiv.textContent = '✗ Error: ' + (data.error || 'Failed to onboard institution');
-                        responseDiv.className = 'response-msg visible error';
-                    }
-                } catch (err) {
-                    responseDiv.textContent = '✗ Network error: ' + err.message;
-                    responseDiv.className = 'response-msg visible error';
-                } finally {
-                    btn.disabled = false;
-                    btn.textContent = 'Authorize Institution';
-                }
+        // ── Sidebar ──
+        document.querySelectorAll('.nav-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab, .tab-content').forEach(el => el.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
             });
+        });
 
-            function escapeHtml(str) {
-                const div = document.createElement('div');
-                div.textContent = str;
-                return div.innerHTML;
+        function escape(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+
+        // ── Global Stats ──
+        async function loadGlobalStats() {
+            try {
+                const data = await (await fetch('/api/v1/stats', { headers: SA_HEADERS })).json();
+                const t = data.totals || {};
+                document.getElementById('gs-institutions').textContent = t.total_institutions || 0;
+                document.getElementById('gs-active-inst').textContent = t.active_institutions || 0;
+                document.getElementById('gs-credentials').textContent = t.total_credentials || 0;
+                document.getElementById('gs-active-creds').textContent = t.active_credentials || 0;
+                document.getElementById('gs-revoked').textContent = t.revoked_credentials || 0;
+                document.getElementById('gs-transcripts').textContent = t.total_transcripts || 0;
+                document.getElementById('gs-verifications').textContent = t.total_verifications || 0;
+                document.getElementById('gs-verif-24h').textContent = t.verifications_24h || 0;
+
+                // Top institutions
+                const topInst = data.top_institutions || [];
+                document.getElementById('top-inst-table').innerHTML = topInst.length
+                    ? topInst.map(i => `<tr><td>${escape(i.name)}</td><td class="mono">${escape(i.short_code)}</td><td>${i.issued_count}</td></tr>`).join('')
+                    : '<tr><td colspan="3" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No data</td></tr>';
+
+                // Monthly trend
+                const trend = data.monthly_trend || [];
+                document.getElementById('monthly-trend-table').innerHTML = trend.length
+                    ? trend.map(m => `<tr><td>${escape(m.month)}</td><td>${m.count}</td></tr>`).join('')
+                    : '<tr><td colspan="2" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No data</td></tr>';
+
+                // Recent activity
+                const activity = data.recent_activity || [];
+                document.getElementById('recent-activity-table').innerHTML = activity.length
+                    ? activity.slice(0, 15).map(a => `<tr>
+                        <td style="font-size:0.6rem;font-family:'JetBrains Mono',monospace;">${new Date(a.created_at).toLocaleString()}</td>
+                        <td class="mono">${escape(a.action)}</td>
+                        <td>${escape(a.actor_name || '—')}</td>
+                        <td style="font-size:0.6rem;color:var(--text-faint);">${escape(JSON.stringify(a.metadata || {}).slice(0, 60))}</td>
+                    </tr>`).join('')
+                    : '<tr><td colspan="4" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No activity yet</td></tr>';
+            } catch(e) {
+                document.getElementById('global-stats').innerHTML = `<p style="color:var(--revoked);font-size:0.8rem;">Failed: ${escape(e.message)}</p>`;
             }
-        })();
+        }
+        loadGlobalStats();
+
+        // ── Onboard ──
+        document.getElementById('onboard-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('onboard-btn');
+            const responseDiv = document.getElementById('form-response');
+            const tokenDisplay = document.getElementById('token-display');
+            btn.disabled = true; btn.textContent = '⟳ Processing...';
+            responseDiv.classList.remove('visible', 'success', 'error');
+            tokenDisplay.classList.remove('visible');
+
+            const body = {
+                name: document.getElementById('inst-name').value.trim(),
+                short_code: document.getElementById('inst-short-code').value.trim().toUpperCase(),
+                type: document.getElementById('inst-type').value,
+                quota: parseInt(document.getElementById('inst-quota').value),
+                email: document.getElementById('inst-email').value.trim(),
+                wallet: document.getElementById('inst-wallet').value.trim() || undefined
+            };
+
+            try {
+                const res = await fetch('/api/v1/institutions', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json', ...SA_HEADERS },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    responseDiv.textContent = '✓ Institution onboarded successfully!';
+                    responseDiv.className = 'response-msg visible success';
+                    document.getElementById('token-value').textContent = data.token_id;
+                    tokenDisplay.classList.add('visible');
+                    document.getElementById('onboard-form').reset();
+                    loadGlobalStats();
+                    loadInstitutions();
+                } else {
+                    responseDiv.textContent = '✗ ' + (data.error || 'Failed');
+                    responseDiv.className = 'response-msg visible error';
+                }
+            } catch(e) {
+                responseDiv.textContent = '✗ Network error: ' + e.message;
+                responseDiv.className = 'response-msg visible error';
+            } finally {
+                btn.disabled = false; btn.textContent = 'Authorize Institution';
+            }
+        });
+
+        // ── Institutions List ──
+        let instPage = 1;
+        async function loadInstitutions() {
+            const search = document.getElementById('inst-search-input').value;
+            const status = document.getElementById('inst-status-filter').value;
+            const params = new URLSearchParams({ page: instPage, limit: 20 });
+            if (search) params.set('search', search);
+            if (status) params.set('status', status);
+
+            try {
+                const data = await (await fetch('/api/v1/institutions?' + params.toString(), { headers: SA_HEADERS })).json();
+                const tbody = document.getElementById('inst-table-body');
+                const list = data.institutions || [];
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No institutions found.</td></tr>';
+                } else {
+                    tbody.innerHTML = list.map(i => `<tr>
+                        <td>${escape(i.name)}</td>
+                        <td class="mono">${escape(i.short_code)}</td>
+                        <td>${escape(i.type)}</td>
+                        <td>${i.issuance_quota?.toLocaleString() || 0}</td>
+                        <td>${i.issued_count || 0}</td>
+                        <td><span class="badge ${i.is_active ? 'active' : 'inactive'}">${i.is_active ? 'Active' : 'Inactive'}</span></td>
+                        <td>
+                            <button style="font-size:0.55rem;padding:4px 8px;margin-right:4px;border:1px solid var(--border-faint);background:var(--abyss);border-radius:4px;color:var(--text-mid);cursor:pointer;" onclick="toggleInstStatus('${i.id}', ${!i.is_active})">
+                                ${i.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            <button style="font-size:0.55rem;padding:4px 8px;border:1px solid var(--border-faint);background:var(--abyss);border-radius:4px;color:var(--text-mid);cursor:pointer;" onclick="editQuota('${i.id}')">
+                                Quota
+                            </button>
+                        </td>
+                    </tr>`).join('');
+                }
+                const pg = data.pagination || {};
+                const pgDiv = document.getElementById('inst-pagination');
+                pgDiv.innerHTML = pg.totalPages > 1
+                    ? `<button ${pg.page <= 1 ? 'disabled' : ''} onclick="instPage--;loadInstitutions();">← Prev</button>
+                       <span>Page ${pg.page} of ${pg.totalPages} (${pg.total})</span>
+                       <button ${pg.page >= pg.totalPages ? 'disabled' : ''} onclick="instPage++;loadInstitutions();">Next →</button>`
+                    : '';
+            } catch(e) {
+                document.getElementById('inst-table-body').innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--revoked);font-size:0.7rem;">${escape(e.message)}</td></tr>`;
+            }
+        }
+        loadInstitutions();
+        document.getElementById('inst-search-btn').addEventListener('click', () => { instPage = 1; loadInstitutions(); });
+        document.getElementById('inst-status-filter').addEventListener('change', () => { instPage = 1; loadInstitutions(); });
+        document.getElementById('inst-search-input').addEventListener('keydown', e => { if (e.key === 'Enter') { instPage = 1; loadInstitutions(); } });
+
+        window.toggleInstStatus = async (id, newStatus) => {
+            try {
+                await fetch('/api/v1/institution?id=' + id + '&action=status', {
+                    method: 'PATCH', headers: { 'Content-Type': 'application/json', ...SA_HEADERS },
+                    body: JSON.stringify({ is_active: newStatus })
+                });
+                loadInstitutions(); loadGlobalStats();
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+
+        window.editQuota = async (id) => {
+            const quota = prompt('Enter new issuance quota:');
+            if (!quota || isNaN(quota) || parseInt(quota) < 0) return;
+            try {
+                await fetch('/api/v1/institution?id=' + id + '&action=quota', {
+                    method: 'PATCH', headers: { 'Content-Type': 'application/json', ...SA_HEADERS },
+                    body: JSON.stringify({ quota: parseInt(quota) })
+                });
+                loadInstitutions();
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+
+        // ── Audit Logs ──
+        let auditPage = 1;
+        async function loadAudit() {
+            const action = document.getElementById('audit-action-filter').value;
+            const params = new URLSearchParams({ page: auditPage, limit: 25 });
+            if (action) params.set('action', action);
+
+            try {
+                const data = await (await fetch('/api/v1/audit?' + params.toString(), { headers: SA_HEADERS })).json();
+                const tbody = document.getElementById('audit-table-body');
+                const list = data.audit_logs || [];
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No audit logs found.</td></tr>';
+                } else {
+                    tbody.innerHTML = list.map(l => `<tr>
+                        <td style="font-size:0.55rem;font-family:'JetBrains Mono',monospace;">${new Date(l.created_at).toLocaleString()}</td>
+                        <td class="mono" style="font-size:0.6rem;">${escape(l.action)}</td>
+                        <td style="font-size:0.6rem;">${escape(l.actor_name || l.actor_id || '—')}</td>
+                        <td style="font-size:0.55rem;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">${l.target_id ? l.target_id.slice(0, 8) + '...' : '—'}</td>
+                        <td style="font-size:0.55rem;color:var(--text-faint);max-width:200px;overflow:hidden;text-overflow:ellipsis;">${escape(JSON.stringify(l.metadata || {}).slice(0, 80))}</td>
+                        <td style="font-size:0.5rem;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">${escape(l.ip_address || '—')}</td>
+                    </tr>`).join('');
+                }
+                const pg = data.pagination || {};
+                document.getElementById('audit-pagination').innerHTML = pg.totalPages > 1
+                    ? `<button ${pg.page <= 1 ? 'disabled' : ''} onclick="auditPage--;loadAudit();">← Prev</button>
+                       <span>Page ${pg.page} of ${pg.totalPages} (${pg.total})</span>
+                       <button ${pg.page >= pg.totalPages ? 'disabled' : ''} onclick="auditPage++;loadAudit();">Next →</button>`
+                    : '';
+            } catch(e) {
+                document.getElementById('audit-table-body').innerHTML = `<tr><td colspan="6" style="text-align:center;color:var(--revoked);font-size:0.7rem;">${escape(e.message)}</td></tr>`;
+            }
+        }
+        loadAudit();
+        document.getElementById('audit-refresh-btn').addEventListener('click', () => { auditPage = 1; loadAudit(); });
+        document.getElementById('audit-action-filter').addEventListener('change', () => { auditPage = 1; loadAudit(); });
+    })();
     </script>
 </body>
 </html>

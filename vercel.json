@@ -3,15 +3,15 @@
   "buildCommand": null,
   "outputDirectory": ".",
   "rewrites": [
-    { "source": "/api/v1/:path", "destination": "/api/v1/:path" }
+    { "source": "/api/v1/:path*", "destination": "/api/v1/:path*" }
   ],
   "headers": [
     {
       "source": "/api/(.*)",
       "headers": [
         { "key": "Access-Control-Allow-Origin", "value": "*" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, x-super-admin-secret" }
+        { "key": "Access-Control-Allow-Methods", "value": "GET, POST, PUT, PATCH, DELETE, OPTIONS" },
+        { "key": "Access-Control-Allow-Headers", "value": "Content-Type, x-super-admin-secret, x-institution-token" }
       ]
     },
     {

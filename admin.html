@@ -8,109 +8,62 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=JetBrains+Mono:wght@300;400;500&family=Montserrat:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="assets/css/void.css">
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     <style>
-        .admin-grid {
-            display: grid;
-            grid-template-columns: 280px 1fr;
-            min-height: 100vh;
-        }
-        .sidebar {
-            background: var(--abyss);
-            border-right: 1px solid var(--border-subtle);
-            padding: 40px 24px;
-            display: flex;
-            flex-direction: column;
-            gap: 32px;
-        }
-        .main-content {
-            padding: 60px;
-            background: var(--void);
-            overflow-y: auto;
-        }
-        .stat-card-row {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-            gap: 20px;
-            margin-bottom: 40px;
-        }
-        .admin-card {
-            background: var(--abyss-raised);
-            border: 1px solid var(--border-subtle);
-            border-radius: 16px;
-            padding: 24px;
-        }
-        .drop-zone {
-            border: 2px dashed var(--border-muted);
-            border-radius: 20px;
-            padding: 60px;
-            text-align: center;
-            transition: all 0.3s;
-            cursor: pointer;
-            background: var(--glass-light);
-        }
-        .drop-zone:hover, .drop-zone.dragover {
-            border-color: var(--gold);
-            background: var(--gold-glow-sm);
-        }
-        .table-container {
-            margin-top: 40px;
-            background: var(--abyss-raised);
-            border: 1px solid var(--border-subtle);
-            border-radius: 16px;
-            overflow: hidden;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            font-size: 0.8rem;
-        }
-        th {
-            background: var(--abyss);
-            text-align: left;
-            padding: 16px;
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.65rem;
-            color: var(--text-muted);
-            text-transform: uppercase;
-        }
-        td {
-            padding: 16px;
-            border-top: 1px solid var(--border-faint);
-            color: var(--text-mid);
-            font-size: 0.75rem;
-        }
-        .batch-actions {
-            display: flex;
-            gap: 12px;
-            margin-top: 16px;
-            align-items: center;
-        }
-        .file-info {
-            font-family: 'JetBrains Mono', monospace;
-            font-size: 0.7rem;
-            color: var(--text-muted);
-            margin-top: 12px;
-        }
-        .results-panel {
-            margin-top: 40px;
-            background: var(--abyss-raised);
-            border: 1px solid var(--border-subtle);
-            border-radius: 16px;
-            padding: 32px;
-            display: none;
-        }
+        :root { --sidebar-w: 260px; }
+        .admin-grid { display: grid; grid-template-columns: var(--sidebar-w) 1fr; min-height: 100vh; }
+        .sidebar { background: var(--abyss); border-right: 1px solid var(--border-subtle); padding: 32px 20px; display: flex; flex-direction: column; gap: 24px; position: fixed; width: var(--sidebar-w); height: 100vh; z-index: 10; }
+        .main-content { margin-left: var(--sidebar-w); padding: 48px; background: var(--void); overflow-y: auto; min-height: 100vh; }
+        .sidebar .nav-logo { font-size: 1.2rem; }
+        .nav-tab { display: flex; align-items: center; gap: 10px; padding: 12px 16px; border-radius: 10px; cursor: pointer; font-size: 0.75rem; color: var(--text-mid); transition: all 0.2s; border: none; background: none; width: 100%; text-align: left; font-family: inherit; }
+        .nav-tab:hover { background: var(--glass-light); color: var(--text-high); }
+        .nav-tab.active { background: var(--gold-glow-sm); color: var(--gold); border: 1px solid var(--border-gold); }
+        .nav-tab svg { width: 18px; height: 18px; flex-shrink: 0; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .stat-card-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin-bottom: 32px; }
+        .stat-card { background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 14px; padding: 20px; }
+        .stat-card .stat-label { display: block; font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.12em; margin-bottom: 6px; }
+        .stat-card .stat-num { font-size: 2rem; font-weight: 600; font-family: 'Cormorant Garamond', serif; }
+        .drop-zone { border: 2px dashed var(--border-muted); border-radius: 20px; padding: 48px; text-align: center; transition: all 0.3s; cursor: pointer; background: var(--glass-light); }
+        .drop-zone:hover, .drop-zone.dragover { border-color: var(--gold); background: var(--gold-glow-sm); }
+        .table-wrap { margin-top: 24px; background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 16px; overflow: hidden; }
+        .table-wrap h3 { padding: 20px 24px 0; font-size: 1rem; }
+        table { width: 100%; border-collapse: collapse; font-size: 0.75rem; }
+        th { background: var(--abyss); text-align: left; padding: 12px 16px; font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.1em; }
+        td { padding: 12px 16px; border-top: 1px solid var(--border-faint); color: var(--text-mid); }
+        td .mono { font-family: 'JetBrains Mono', monospace; font-size: 0.6rem; }
+        .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.55rem; font-family: 'JetBrains Mono', monospace; text-transform: uppercase; letter-spacing: 0.08em; }
+        .badge.active { background: rgba(46,204,140,0.12); color: var(--success); border: 1px solid rgba(46,204,140,0.25); }
+        .badge.suspended { background: rgba(255,193,7,0.12); color: #FFC107; border: 1px solid rgba(255,193,7,0.25); }
+        .badge.revoked { background: rgba(229,57,53,0.12); color: var(--revoked); border: 1px solid rgba(229,57,53,0.25); }
+        .results-panel { margin-top: 24px; background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 24px; display: none; }
         .results-panel.visible { display: block; }
         .results-panel.success { border-color: rgba(46,204,140,0.3); }
         .results-panel.error { border-color: rgba(229,57,53,0.3); }
-        .response-msg {
-            font-size: 0.75rem;
-            margin-top: 12px;
-            padding: 12px;
-            border-radius: 8px;
-        }
-        .response-msg.success { background: rgba(46,204,140,0.1); color: var(--success); border: 1px solid rgba(46,204,140,0.2); }
-        .response-msg.error { background: rgba(229,57,53,0.1); color: var(--revoked); border: 1px solid rgba(229,57,53,0.2); }
+        .toolbar { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 16px; }
+        .toolbar input, .toolbar select { background: var(--abyss-raised); border: 1px solid var(--border-muted); padding: 8px 12px; border-radius: 8px; color: white; font-size: 0.75rem; font-family: inherit; }
+        .toolbar input:focus, .toolbar select:focus { border-color: var(--gold); outline: none; }
+        .search-input { min-width: 220px; }
+        .pagination { display: flex; gap: 8px; align-items: center; justify-content: center; padding: 16px; font-size: 0.7rem; color: var(--text-muted); }
+        .pagination button { background: var(--abyss); border: 1px solid var(--border-faint); padding: 6px 14px; border-radius: 6px; color: var(--text-mid); cursor: pointer; font-size: 0.65rem; }
+        .pagination button:disabled { opacity: 0.3; cursor: default; }
+        .status-actions { display: flex; gap: 4px; }
+        .status-actions button { padding: 4px 10px; border-radius: 4px; border: 1px solid var(--border-faint); background: var(--abyss); color: var(--text-mid); cursor: pointer; font-size: 0.55rem; font-family: 'JetBrains Mono', monospace; }
+        .status-actions button:hover { border-color: var(--gold); }
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.7); z-index: 100; display: none; place-items: center; backdrop-filter: blur(4px); }
+        .modal-overlay.visible { display: grid; }
+        .modal { background: var(--abyss-raised); border: 1px solid var(--border-subtle); border-radius: 20px; padding: 32px; max-width: 700px; width: 90%; max-height: 80vh; overflow-y: auto; }
+        .modal h2 { margin-bottom: 20px; }
+        .subject-row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr 1fr; gap: 8px; padding: 8px; border-bottom: 1px solid var(--border-faint); font-size: 0.7rem; }
+        .subject-row.header { color: var(--text-muted); font-family: 'JetBrains Mono', monospace; font-size: 0.55rem; text-transform: uppercase; letter-spacing: 0.08em; }
+        .csv-type-indicator { display: inline-block; font-size: 0.6rem; padding: 2px 8px; border-radius: 4px; background: var(--glass-light); margin-left: 8px; font-family: 'JetBrains Mono', monospace; }
+        .csv-type-indicator.credential { color: var(--success); border: 1px solid rgba(46,204,140,0.2); }
+        .csv-type-indicator.combined { color: var(--gold); border: 1px solid rgba(212,175,55,0.2); }
+        .section-desc { font-size: 0.75rem; color: var(--text-muted); margin-bottom: 20px; line-height: 1.6; }
+        .sidebar-footer { margin-top: auto; display: flex; flex-direction: column; gap: 8px; padding-top: 16px; border-top: 1px solid var(--border-faint); }
+        .sidebar-footer .meta { font-size: 0.55rem; color: var(--text-faint); font-family: 'JetBrains Mono', monospace; }
+        .sidebar-footer .meta span { color: var(--text-muted); }
+        @media (max-width: 768px) { :root { --sidebar-w: 0px; } .sidebar { display: none; } .main-content { margin-left: 0; padding: 24px; } }
     </style>
 </head>
 <body class="bg-black text-white">
@@ -118,289 +71,594 @@
     <div id="cursor-ring"></div>
 
     <div class="admin-grid">
+        <!-- SIDEBAR -->
         <aside class="sidebar">
             <div class="nav-logo">ACERVIS</div>
-            <nav style="display: flex; flex-direction: column; gap: 12px;">
-                <a href="#" class="nav-link active">Dashboard</a>
-                <a href="#" class="nav-link">Batch Issuance</a>
-                <a href="#" class="nav-link">Revocation List</a>
-                <a href="#" class="nav-link">Institution Settings</a>
+            <nav style="display:flex;flex-direction:column;gap:4px;">
+                <button class="nav-tab active" data-tab="dashboard">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+                    Dashboard
+                </button>
+                <button class="nav-tab" data-tab="issue">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M12 5v14M5 12h14"/></svg>
+                    Issue Credentials
+                </button>
+                <button class="nav-tab" data-tab="credentials">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M4 19.5A2.5 2.5 0 016.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 014 19.5v-15A2.5 2.5 0 016.5 2z"/></svg>
+                    Credentials
+                </button>
+                <button class="nav-tab" data-tab="transcripts">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M8 13h8M8 17h8"/></svg>
+                    Transcripts
+                </button>
+                <button class="nav-tab" data-tab="csvtools">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><path d="M14 2v6h6"/><path d="M10 13l2 2 4-4"/></svg>
+                    CSV Tools
+                </button>
             </nav>
-            <div style="margin-top: auto;">
-                <div class="footer-meta-item"><span>WALLET:</span> <span id="wallet-display">—</span></div>
-                <div class="footer-meta-item"><span>QUOTA:</span> <span id="quota-display">—</span></div>
-                <div class="footer-meta-item"><span>TOKEN:</span> <span id="token-display" style="font-size:0.5rem;">—</span></div>
-                <a href="index.html" class="btn btn-ghost" style="margin-top: 20px; width: 100%;">Logout</a>
+            <div class="sidebar-footer">
+                <div class="meta">INSTITUTION: <span id="sbar-inst">—</span></div>
+                <div class="meta">TOKEN: <span id="sbar-token" style="font-size:0.5rem;">—</span></div>
+                <div class="meta">QUOTA: <span id="sbar-quota">—</span></div>
+                <a href="index.html" class="btn btn-ghost" style="width:100%;margin-top:8px;font-size:0.7rem;padding:8px;">Logout</a>
             </div>
         </aside>
 
+        <!-- MAIN -->
         <main class="main-content">
-            <div class="reveal">
+
+            <!-- ═══ TAB: Dashboard ═══ -->
+            <section class="tab-content active" id="tab-dashboard">
                 <div class="eyebrow">Institutional Terminal</div>
-                <h1 class="section-title">Welcome, <em id="inst-name-display">Institution</em></h1>
-                <p class="section-body">Manage your academic ledger and issue tamper-proof credentials.</p>
-            </div>
+                <h1 class="section-title">Dashboard, <em><span id="dash-inst-name">—</span></em></h1>
+                <p class="section-body">Real-time overview of your credential issuance and network activity.</p>
 
-            <div class="stat-card-row reveal delay-100" style="margin-top: 40px;">
-                <div class="admin-card">
-                    <span class="stat-label">Total Issued</span>
-                    <span class="stat-num" style="font-size: 2.5rem;" id="stat-issued">0</span>
+                <div class="stat-card-row" id="dash-stats">
+                    <div class="stat-card"><span class="stat-label">Total Issued</span><div class="stat-num" id="dash-total">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Issuance Quota</span><div class="stat-num" style="color:var(--gold);" id="dash-quota">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Remaining</span><div class="stat-num" id="dash-remaining">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Active Credentials</span><div class="stat-num" id="dash-active">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Issued (30d)</span><div class="stat-num" id="dash-month">—</div></div>
+                    <div class="stat-card"><span class="stat-label">Transcripts</span><div class="stat-num" id="dash-transcripts">—</div></div>
                 </div>
-                <div class="admin-card">
-                    <span class="stat-label">Issuance Quota</span>
-                    <span class="stat-num" style="font-size: 2.5rem; color: var(--gold);" id="stat-quota">0</span>
-                </div>
-                <div class="admin-card">
-                    <span class="stat-label">Remaining</span>
-                    <span class="stat-num" style="font-size: 2.5rem;" id="stat-remaining">0</span>
-                </div>
-            </div>
 
-            <div class="reveal delay-200">
-                <h2 class="section-title" style="font-size: 1.5rem; margin-bottom: 20px;">Batch Issuance</h2>
-                <p class="section-body" style="margin-bottom: 20px;">Upload a CSV with columns: <code>student_name, grad_year, course_name, degree_type, matric_number</code></p>
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+                    <div class="table-wrap"><h3>Monthly Trend (6mo)</h3>
+                        <table><thead><tr><th>Month</th><th>Issued</th></tr></thead>
+                        <tbody id="dash-monthly-table"><tr><td colspan="2" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody></table>
+                    </div>
+                    <div class="table-wrap"><h3>Top Courses</h3>
+                        <table><thead><tr><th>Course</th><th>Degree</th><th>Count</th></tr></thead>
+                        <tbody id="dash-courses-table"><tr><td colspan="3" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody></table>
+                    </div>
+                </div>
+            </section>
+
+            <!-- ═══ TAB: Issue Credentials ═══ -->
+            <section class="tab-content" id="tab-issue">
+                <div class="eyebrow">Batch Issuance</div>
+                <h1 class="section-title">Upload & <em>Anchor</em></h1>
+                <p class="section-desc">
+                    Upload a <strong>credential-only CSV</strong> (<code>student_name, matric_number, course_name, degree_type, graduation_year</code>) or a 
+                    <strong>combined CSV</strong> with <code>type</code> column (<code>STUDENT</code>/<code>SUBJECT</code> markers) for credentials + transcripts.
+                    <a href="#" id="download-template-link" style="color:var(--gold);">Download template ↓</a>
+                </p>
+
                 <div class="drop-zone" id="drop-zone">
-                    <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="var(--gold)" stroke-width="1.5" style="margin-bottom: 16px;">
-                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
+                    <svg viewBox="0 0 24 24" width="40" height="40" fill="none" stroke="var(--gold)" stroke-width="1.5" style="margin-bottom:12px;">
+                        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M17 8l-5-5-5 5M12 3v12"/>
                     </svg>
-                    <p class="mono" style="font-size: 0.9rem;">Drop CSV file here or click to browse</p>
-                    <p class="text-faint" style="font-size: 0.7rem; margin-top: 8px;" id="drop-status">Max 10,000 rows per batch. Quota will be deducted upon anchoring.</p>
-                    <input type="file" id="file-input" accept=".csv" style="display: none;">
+                    <p class="mono" style="font-size:0.85rem;">Drop CSV file here or click to browse</p>
+                    <p class="text-faint" style="font-size:0.65rem;margin-top:6px;" id="drop-status">Supports credential-only and combined (STUDENT+SUBJECT) formats</p>
+                    <input type="file" id="file-input" accept=".csv" style="display:none;">
                 </div>
-                <div id="file-info" class="file-info" style="display: none;"></div>
-                <div class="batch-actions" id="batch-actions" style="display: none;">
-                    <button class="btn btn-primary" id="issue-btn">Issue & Anchor Credentials</button>
-                    <button class="btn btn-ghost" id="clear-btn">Clear Batch</button>
+                <div id="file-info" class="file-info" style="display:none;font-family:'JetBrains Mono',monospace;font-size:0.65rem;color:var(--text-muted);margin-top:12px;"></div>
+                <div id="batch-actions" style="display:none;margin-top:16px;display:flex;gap:12px;align-items:center;">
+                    <button class="btn btn-primary" id="validate-btn">Validate CSV</button>
+                    <button class="btn btn-primary" id="issue-btn">Issue & Anchor</button>
+                    <button class="btn btn-ghost" id="clear-btn">Clear</button>
+                    <span id="csv-type-badge" style="font-size:0.6rem;color:var(--text-faint);font-family:'JetBrains Mono',monospace;"></span>
                 </div>
-            </div>
 
-            <div id="results-panel" class="results-panel">
-                <h3 id="results-title" class="section-title" style="font-size: 1.2rem; margin-bottom: 16px;">Results</h3>
-                <div id="results-content"></div>
-            </div>
+                <div id="results-panel" class="results-panel">
+                    <h3 id="results-title" style="font-size:1rem;margin-bottom:12px;">Results</h3>
+                    <div id="results-content"></div>
+                </div>
+            </section>
 
-            <div class="table-container reveal delay-300">
-                <h2 class="section-title" style="font-size: 1.2rem; padding: 24px 24px 0;">Recent Credentials</h2>
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Student Name</th>
-                            <th>NCN</th>
-                            <th>Degree</th>
-                            <th>Status</th>
-                        </tr>
-                    </thead>
-                    <tbody id="credentials-table-body">
-                        <tr>
-                            <td colspan="4" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No credentials issued yet.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+            <!-- ═══ TAB: Credentials ═══ -->
+            <section class="tab-content" id="tab-credentials">
+                <div class="eyebrow">Credential Management</div>
+                <h1 class="section-title">Issued <em>Credentials</em></h1>
+                <div class="toolbar">
+                    <input class="search-input" id="cred-search" placeholder="Search by name, NCN, or matric...">
+                    <select id="cred-status-filter"><option value="">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="revoked">Revoked</option></select>
+                    <button class="btn btn-primary" id="cred-search-btn" style="font-size:0.65rem;padding:8px 16px;">Search</button>
+                </div>
+                <div class="table-wrap">
+                    <table><thead><tr><th>NCN</th><th>Name</th><th>Course</th><th>Degree</th><th>Year</th><th>Status</th><th>Blockchain</th><th>Actions</th></tr></thead>
+                        <tbody id="cred-table-body"><tr><td colspan="8" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
+                    </table>
+                    <div class="pagination" id="cred-pagination"></div>
+                </div>
+            </section>
+
+            <!-- ═══ TAB: Transcripts ═══ -->
+            <section class="tab-content" id="tab-transcripts">
+                <div class="eyebrow">Transcript Management</div>
+                <h1 class="section-title">Academic <em>Transcripts</em></h1>
+                <div class="toolbar">
+                    <input class="search-input" id="trans-search" placeholder="Search by name, NCN, or matric...">
+                    <select id="trans-status-filter"><option value="">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="revoked">Revoked</option></select>
+                    <button class="btn btn-primary" id="trans-search-btn" style="font-size:0.65rem;padding:8px 16px;">Search</button>
+                </div>
+                <div class="table-wrap">
+                    <table><thead><tr><th>NCN</th><th>Name</th><th>Course</th><th>CGPA</th><th>Credits</th><th>Subjects</th><th>Status</th><th>Actions</th></tr></thead>
+                        <tbody id="trans-table-body"><tr><td colspan="8" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">Loading...</td></tr></tbody>
+                    </table>
+                    <div class="pagination" id="trans-pagination"></div>
+                </div>
+            </section>
+
+            <!-- ═══ TAB: CSV Tools ═══ -->
+            <section class="tab-content" id="tab-csvtools">
+                <div class="eyebrow">CSV Utilities</div>
+                <h1 class="section-title">Templates & <em>Validation</em></h1>
+                <p class="section-desc">Download pre-formatted CSV templates or validate your CSV before uploading.</p>
+                <div style="display:flex;gap:12px;flex-wrap:wrap;margin-bottom:32px;">
+                    <a href="/api/v1/csv?type=credential" class="btn btn-primary" download>↓ Credential Template</a>
+                    <a href="/api/v1/csv?type=transcript" class="btn btn-primary" download>↓ Combined Template</a>
+                    <a href="/api/v1/csv?type=verify" class="btn btn-ghost" download>↓ Verify Template</a>
+                </div>
+                <div class="table-wrap" style="padding:24px;">
+                    <h3 style="margin-bottom:16px;font-size:1rem;">Validate CSV</h3>
+                    <p class="section-desc">Paste your CSV text below or upload a file to check for errors before importing.</p>
+                    <textarea id="validate-csv-input" rows="6" style="width:100%;background:var(--void);border:1px solid var(--border-muted);border-radius:8px;padding:12px;color:white;font-family:'JetBrains Mono',monospace;font-size:0.65rem;" placeholder="Paste CSV content here..."></textarea>
+                    <div style="margin-top:12px;">
+                        <button class="btn btn-primary" id="validate-csv-btn" style="font-size:0.7rem;">Validate</button>
+                    </div>
+                    <div id="validation-result" style="margin-top:16px;display:none;"></div>
+                </div>
+            </section>
+
         </main>
+    </div>
+
+    <!-- MODAL: Subject Viewer -->
+    <div class="modal-overlay" id="subject-modal">
+        <div class="modal">
+            <h2 id="modal-title">Transcript Subjects</h2>
+            <p style="font-size:0.75rem;color:var(--text-muted);margin-bottom:16px;" id="modal-student-info"></p>
+            <div class="subject-row header">
+                <span>Course Code</span><span>Title</span><span>Credits</span><span>Score</span><span>Grade</span>
+            </div>
+            <div id="modal-subjects"></div>
+            <button class="btn btn-ghost" style="margin-top:16px;" onclick="document.getElementById('subject-modal').classList.remove('visible')">Close</button>
+        </div>
     </div>
 
     <script src="assets/js/core.js"></script>
     <script>
-        (function() {
-            // Validate session token
-            const adminToken = sessionStorage.getItem('acervis_admin_token');
-            if (!adminToken || adminToken.length !== 12) {
-                window.location.href = 'index.html';
-                return;
+    (function() {
+        // ── Auth ──
+        const ADMIN_TOKEN = sessionStorage.getItem('acervis_admin_token');
+        if (!ADMIN_TOKEN || ADMIN_TOKEN.length !== 12) { window.location.href = 'index.html'; return; }
+
+        const API_HEADERS = { 'x-institution-token': ADMIN_TOKEN };
+        let parsedCSV = null, csvType = null;
+
+        // ── Sidebar Nav ──
+        document.querySelectorAll('.nav-tab').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab, .tab-content').forEach(el => el.classList.remove('active'));
+                btn.classList.add('active');
+                document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
+            });
+        });
+
+        // ── Helpers ──
+        function escape(s) { const d = document.createElement('div'); d.textContent = s; return d.innerHTML; }
+        async function apiFetch(path, opts = {}) {
+            const res = await fetch(path, { headers: { ...API_HEADERS, ...opts.headers }, ...opts });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data.error || 'Request failed');
+            return data;
+        }
+
+        // ── Load Dashboard ──
+        async function loadDashboard() {
+            try {
+                const data = await apiFetch('/api/v1/stats');
+                const inst = data.institution || {};
+                document.getElementById('dash-inst-name').textContent = inst.name || '—';
+                document.getElementById('sbar-inst').textContent = inst.name || '—';
+                document.getElementById('sbar-token').textContent = ADMIN_TOKEN;
+                document.getElementById('sbar-quota').textContent = data.quota ? `${data.quota.used}/${data.quota.total}` : '—';
+
+                const t = data.totals || {};
+                document.getElementById('dash-total').textContent = t.total_credentials || 0;
+                document.getElementById('dash-quota').textContent = data.quota?.total || 0;
+                document.getElementById('dash-remaining').textContent = data.quota?.remaining || 0;
+                document.getElementById('dash-active').textContent = t.active_credentials || 0;
+                document.getElementById('dash-month').textContent = t.issued_30d || 0;
+                document.getElementById('dash-transcripts').textContent = t.total_transcripts || 0;
+
+                // Monthly trend
+                const mtBody = document.getElementById('dash-monthly-table');
+                const trend = data.monthly_trend || [];
+                mtBody.innerHTML = trend.length ? trend.map(m => `<tr><td>${escape(m.month)}</td><td>${m.count}</td></tr>`).join('')
+                    : '<tr><td colspan="2" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No data yet</td></tr>';
+
+                // Top courses
+                const tcBody = document.getElementById('dash-courses-table');
+                const courses = data.top_courses || [];
+                tcBody.innerHTML = courses.length ? courses.map(c => `<tr><td>${escape(c.course_name)}</td><td>${escape(c.degree_type)}</td><td>${c.count}</td></tr>`).join('')
+                    : '<tr><td colspan="3" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No data yet</td></tr>';
+            } catch (e) {
+                document.getElementById('dash-stats').innerHTML = `<p style="color:var(--revoked);font-size:0.8rem;">Failed to load dashboard: ${escape(e.message)}</p>`;
             }
-            document.getElementById('token-display').textContent = adminToken;
+        }
+        loadDashboard();
 
-            // Show stored institution info if available
-            const instInfo = JSON.parse(sessionStorage.getItem('acervis_inst_info') || '{}');
-            if (instInfo.name) {
-                document.getElementById('inst-name-display').textContent = instInfo.name;
-                document.getElementById('stat-issued').textContent = instInfo.issued_count || '0';
-                document.getElementById('stat-quota').textContent = instInfo.issuance_quota || '0';
-                document.getElementById('wallet-display').textContent = instInfo.wallet || '—';
-                const remaining = (instInfo.issuance_quota || 0) - (instInfo.issued_count || 0);
-                document.getElementById('stat-remaining').textContent = remaining;
-            }
+        // ── Issue Tab: CSV Upload ──
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('file-input');
+        const fileInfo = document.getElementById('file-info');
+        const batchActions = document.getElementById('batch-actions');
 
-            // CSV Drop Zone
-            const dropZone = document.getElementById('drop-zone');
-            const fileInput = document.getElementById('file-input');
-            const fileInfo = document.getElementById('file-info');
-            const batchActions = document.getElementById('batch-actions');
-            let parsedData = null;
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('dragover'); if (e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]); });
+        fileInput.addEventListener('change', e => { if (e.target.files[0]) handleFile(e.target.files[0]); });
 
-            dropZone.addEventListener('click', () => fileInput.click());
+        function handleFile(file) {
+            if (!file.name.endsWith('.csv')) { alert('Please upload a CSV file.'); return; }
+            const reader = new FileReader();
+            reader.onload = function(ev) {
+                const csvText = ev.target.result;
+                const parsed = Papa.parse(csvText.trim(), { header: true, skipEmptyLines: true });
+                if (parsed.data.length === 0) { alert('CSV is empty.'); return; }
 
-            dropZone.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                dropZone.classList.add('dragover');
-            });
+                const headers = parsed.meta.fields || [];
+                const hasType = headers.includes('type');
+                const hasSubject = headers.includes('course_code');
 
-            dropZone.addEventListener('dragleave', () => {
-                dropZone.classList.remove('dragover');
-            });
-
-            dropZone.addEventListener('drop', (e) => {
-                e.preventDefault();
-                dropZone.classList.remove('dragover');
-                const files = e.dataTransfer.files;
-                if (files.length > 0) handleFile(files[0]);
-            });
-
-            fileInput.addEventListener('change', (e) => {
-                if (e.target.files.length > 0) handleFile(e.target.files[0]);
-            });
-
-            function handleFile(file) {
-                if (!file.name.endsWith('.csv')) {
-                    alert('Please upload a CSV file.');
+                if (hasType) {
+                    csvType = 'combined';
+                } else if (!hasSubject) {
+                    csvType = 'credential';
+                } else {
+                    alert('Columns look like a flat transcript file. Use the combined format with type (STUDENT/SUBJECT) markers. Download the template.');
                     return;
                 }
 
-                const reader = new FileReader();
-                reader.onload = function(e) {
-                    const csvData = e.target.result;
-                    PapaParse.parse(csvData, {
-                        header: true,
-                        skipEmptyLines: true,
-                        complete: function(results) {
-                            if (results.data.length === 0) {
-                                alert('CSV file is empty.');
-                                return;
-                            }
+                parsedCSV = csvText;
+                fileInfo.style.display = 'block';
+                fileInfo.innerHTML = `📄 <strong>${escape(file.name)}</strong> — ${parsed.data.length} rows · <span style="color:var(--gold);font-weight:500;">${csvType === 'combined' ? 'Combined (Credential + Transcript)' : 'Credential-Only'}</span>`;
+                batchActions.style.display = 'flex';
+                document.getElementById('drop-status').textContent = `${parsed.data.length} records loaded. Click "Validate CSV" to check, then "Issue & Anchor".`;
+            };
+            reader.readAsText(file);
+        }
 
-                            // Validate required columns
-                            const required = ['student_name', 'grad_year', 'course_name', 'degree_type', 'matric_number'];
-                            const headers = Object.keys(results.data[0]);
-                            const missing = required.filter(h => !headers.includes(h));
+        document.getElementById('clear-btn').addEventListener('click', () => {
+            parsedCSV = null; csvType = null;
+            fileInfo.style.display = 'none'; batchActions.style.display = 'none';
+            document.getElementById('drop-status').textContent = 'Supports credential-only and combined (STUDENT+SUBJECT) formats';
+            fileInput.value = '';
+            document.getElementById('results-panel').classList.remove('visible', 'success', 'error');
+        });
 
-                            if (missing.length > 0) {
-                                alert('Missing required columns: ' + missing.join(', ') + '\n\nRequired: ' + required.join(', '));
-                                return;
-                            }
+        document.getElementById('validate-btn').addEventListener('click', async () => {
+            if (!parsedCSV) return;
+            const panel = document.getElementById('results-panel');
+            const content = document.getElementById('results-content');
+            const title = document.getElementById('results-title');
 
-                            parsedData = results.data;
-                            fileInfo.style.display = 'block';
-                            fileInfo.textContent = '📄 ' + file.name + ' — ' + parsedData.length + ' students loaded';
-                            document.getElementById('drop-status').textContent = parsedData.length + ' credentials ready for issuance';
-                            batchActions.style.display = 'flex';
-                        },
-                        error: function(err) {
-                            alert('Error parsing CSV: ' + err.message);
-                        }
-                    });
-                };
-                reader.readAsText(file);
-            }
+            try {
+                const res = await fetch('/api/v1/csv?action=validate', {
+                    method: 'POST', headers: { ...API_HEADERS, 'Content-Type': 'text/plain' },
+                    body: parsedCSV
+                });
+                const data = await res.json();
+                panel.classList.add('visible');
+                panel.className = 'results-panel visible ' + (data.valid ? 'success' : 'error');
+                title.textContent = data.valid ? '✓ CSV is Valid' : '✗ CSV Has Errors';
 
-            document.getElementById('clear-btn').addEventListener('click', () => {
-                parsedData = null;
-                fileInfo.style.display = 'none';
-                fileInfo.textContent = '';
-                batchActions.style.display = 'none';
-                document.getElementById('drop-status').textContent = 'Max 10,000 rows per batch.';
-                fileInput.value = '';
-            });
-
-            document.getElementById('issue-btn').addEventListener('click', async () => {
-                if (!parsedData || parsedData.length === 0) return;
-
-                const btn = document.getElementById('issue-btn');
-                const panel = document.getElementById('results-panel');
-                const content = document.getElementById('results-content');
-                const title = document.getElementById('results-title');
-
-                btn.disabled = true;
-                btn.textContent = '⟳ Synthesizing & Anchoring...';
-                panel.classList.remove('visible', 'success', 'error');
-
-                const batch = parsedData.map(row => ({
-                    name: row.student_name,
-                    year: parseInt(row.grad_year),
-                    course: row.course_name,
-                    type: row.degree_type,
-                    matric: row.matric_number
-                }));
-
-                try {
-                    const res = await fetch('/api/v1/issue', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ token: adminToken, batch })
-                    });
-
-                    const data = await res.json();
-
-                    panel.classList.add('visible');
-
-                    if (res.ok && data.success) {
-                        panel.className = 'results-panel visible success';
-                        title.textContent = '✓ Batch Issuance Complete';
-
-                        let resultsHtml = `<p style="margin-bottom:16px;color:var(--success);">
-                            Successfully issued ${data.results.length} credentials.
-                        </p>`;
-
-                        // Show first 10 results as preview
-                        const preview = data.results.slice(0, 10);
-                        resultsHtml += '<table><thead><tr><th>Name</th><th>NCN</th><th>Hash (first 12)</th></tr></thead><tbody>';
-                        preview.forEach(r => {
-                            resultsHtml += `<tr>
-                                <td>${escapeHtml(r.name)}</td>
-                                <td class="mono" style="font-size:0.65rem;">${escapeHtml(r.ncn)}</td>
-                                <td class="mono" style="font-size:0.55rem;color:var(--text-faint);">${r.hash.slice(0, 12)}...</td>
-                            </tr>`;
-                        });
-                        if (data.results.length > 10) {
-                            resultsHtml += `<tr><td colspan="3" style="text-align:center;color:var(--text-muted);font-size:0.7rem;">
-                                ... and ${data.results.length - 10} more
-                            </td></tr>`;
-                        }
-                        resultsHtml += '</tbody></table>';
-
-                        // Generate downloadable CSV
-                        const csvRows = [['student_name', 'ncn', 'blockchain_hash']];
-                        data.results.forEach(r => csvRows.push([r.name, r.ncn, r.hash]));
-                        const csvContent = PapaParse.unparse(csvRows);
-                        const blob = new Blob([csvContent], { type: 'text/csv' });
-                        const url = URL.createObjectURL(blob);
-
-                        resultsHtml += `<div style="margin-top:20px;">
-                            <a href="${url}" download="acervis-issued-${Date.now()}.csv" class="btn btn-primary">
-                                ↓ Download CSV with NCNs
-                            </a>
-                        </div>`;
-
-                        content.innerHTML = resultsHtml;
-
-                        // Clear the batch
-                        parsedData = null;
-                        fileInfo.style.display = 'none';
-                        batchActions.style.display = 'none';
-                        document.getElementById('drop-status').textContent = 'Max 10,000 rows per batch.';
-                        fileInput.value = '';
-                    } else {
-                        panel.className = 'results-panel visible error';
-                        title.textContent = '✗ Issuance Failed';
-                        content.innerHTML = `<p style="color:var(--revoked);">${escapeHtml(data.error || 'Unknown error')}</p>`;
-                    }
-                } catch (err) {
-                    panel.classList.add('visible');
-                    panel.className = 'results-panel visible error';
-                    title.textContent = '✗ Network Error';
-                    content.innerHTML = `<p style="color:var(--revoked);">${escapeHtml(err.message)}</p>`;
-                } finally {
-                    btn.disabled = false;
-                    btn.textContent = 'Issue & Anchor Credentials';
+                let html = `<p>Type: <strong>${data.type}</strong> · Rows: ${data.row_count} · Students: ${data.student_count}</p>`;
+                if (data.errors && data.errors.length > 0) {
+                    html += `<div style="margin-top:12px;max-height:300px;overflow-y:auto;font-size:0.7rem;font-family:'JetBrains Mono',monospace;">
+                        ${data.errors.map(e => `<div style="padding:4px 8px;background:rgba(229,57,53,0.05);border-radius:4px;margin-bottom:2px;">${escape(e)}</div>`).join('')}
+                    </div>`;
+                } else {
+                    html += `<p style="color:var(--success);margin-top:8px;">Ready to issue!</p>`;
                 }
-            });
-
-            function escapeHtml(str) {
-                const div = document.createElement('div');
-                div.textContent = str;
-                return div.innerHTML;
+                content.innerHTML = html;
+            } catch (e) {
+                panel.classList.add('visible');
+                panel.className = 'results-panel visible error';
+                title.textContent = '✗ Validation Error';
+                content.innerHTML = escape(e.message);
             }
-        })();
+        });
+
+        document.getElementById('issue-btn').addEventListener('click', async () => {
+            if (!parsedCSV) return;
+            const btn = document.getElementById('issue-btn');
+            const panel = document.getElementById('results-panel');
+            const content = document.getElementById('results-content');
+            const title = document.getElementById('results-title');
+
+            btn.disabled = true; btn.textContent = '⟳ Processing...';
+            panel.classList.remove('visible', 'success', 'error');
+
+            try {
+                const res = await fetch('/api/v1/batch-issue', {
+                    method: 'POST', headers: { ...API_HEADERS, 'Content-Type': 'text/plain' },
+                    body: parsedCSV
+                });
+                const data = await res.json();
+
+                panel.classList.add('visible');
+
+                if (res.ok && data.success) {
+                    panel.className = 'results-panel visible success';
+                    title.textContent = `✓ Issuance Complete — ${data.summary?.total_students || data.results?.length || 0} credential(s) issued`;
+
+                    const results = data.results || [];
+                    let html = `<p style="margin-bottom:16px;color:var(--success);font-size:0.8rem;">
+                        ${results.length} student(s) processed · ${data.summary?.errors || 0} error(s)
+                        ${data.tx_hashes?.length ? '· ⛓ Anchored on Polygon' : ''}
+                        ${data.elapsed_ms ? `· ${data.elapsed_ms}ms` : ''}
+                    </p>`;
+
+                    // Build results table
+                    html += '<table><thead><tr><th>Student</th><th>Credential NCN</th>';
+                    if (results[0]?.transcript) html += '<th>Transcript NCN</th><th>Subjects</th>';
+                    html += '<th>Hash (first 16)</th></tr></thead><tbody>';
+
+                    results.slice(0, 20).forEach(r => {
+                        const name = r.student_name || r.name || '—';
+                        const credNcn = r.credential?.ncn || r.ncn || '—';
+                        html += `<tr><td>${escape(name)}</td><td class="mono" style="font-size:0.6rem;">${escape(credNcn)}</td>`;
+                        if (r.transcript) {
+                            html += `<td class="mono" style="font-size:0.6rem;">${escape(r.transcript.ncn)}</td>`;
+                            html += `<td>${r.transcript.subjects_count || 0}</td>`;
+                        }
+                        const hash = r.hash || r.credential?.hash || '';
+                        html += `<td class="mono" style="font-size:0.5rem;color:var(--text-faint);">${hash.slice(0,16)}...</td></tr>`;
+                    });
+
+                    if (results.length > 20) {
+                        html += `<tr><td colspan="5" style="text-align:center;color:var(--text-muted);font-size:0.65rem;">... and ${results.length - 20} more</td></tr>`;
+                    }
+                    html += '</tbody></table>';
+
+                    // NCN download CSV
+                    const csvRows = [['student_name', 'credential_ncn', 'transcript_ncn', 'blockchain_hash']];
+                    results.forEach(r => {
+                        const name = r.student_name || r.name || '';
+                        const credNcn = r.credential?.ncn || r.ncn || '';
+                        const transNcn = r.transcript?.ncn || '';
+                        const hash = r.hash || r.credential?.hash || '';
+                        csvRows.push([name, credNcn, transNcn, hash]);
+                    });
+                    const csvContent = Papa.unparse(csvRows);
+                    const blob = new Blob([csvContent], { type: 'text/csv' });
+                    const url = URL.createObjectURL(blob);
+
+                    html += `<div style="margin-top:20px;display:flex;gap:12px;">
+                        <a href="${url}" download="acervis-ncns-${Date.now()}.csv" class="btn btn-primary">↓ Download NCNs CSV</a>
+                    </div>`;
+
+                    if (data.warnings) {
+                        html += `<div style="margin-top:12px;padding:12px;background:rgba(255,193,7,0.08);border-radius:8px;font-size:0.7rem;color:#FFC107;">
+                            ⚠ ${data.warnings[0]}</div>`;
+                    }
+
+                    content.innerHTML = html;
+                    parsedCSV = null; fileInfo.style.display = 'none'; batchActions.style.display = 'none';
+                    document.getElementById('drop-status').textContent = 'Supports credential-only and combined (STUDENT+SUBJECT) formats';
+                    fileInput.value = '';
+                    loadDashboard(); // refresh stats
+                } else {
+                    panel.className = 'results-panel visible error';
+                    title.textContent = '✗ Issuance Failed';
+                    content.innerHTML = `<p style="color:var(--revoked);font-size:0.8rem;">${escape(data.error || 'Unknown error')}</p>`;
+                }
+            } catch (e) {
+                panel.classList.add('visible');
+                panel.className = 'results-panel visible error';
+                title.textContent = '✗ Network Error';
+                content.innerHTML = `<p style="color:var(--revoked);font-size:0.8rem;">${escape(e.message)}</p>`;
+            } finally {
+                btn.disabled = false; btn.textContent = 'Issue & Anchor';
+            }
+        });
+
+        // ── Download template link ──
+        document.getElementById('download-template-link').addEventListener('click', e => {
+            e.preventDefault();
+            window.open('/api/v1/csv?type=transcript', '_blank');
+        });
+
+        // ── Credentials Tab ──
+        let credPage = 1;
+        async function loadCredentials() {
+            const search = document.getElementById('cred-search').value;
+            const status = document.getElementById('cred-status-filter').value;
+            const params = new URLSearchParams({ page: credPage, limit: 15 });
+            if (status) params.set('status', status);
+            const url = '/api/v1/credentials?' + params.toString();
+            const body = search ? { q: search } : null;
+
+            try {
+                const data = body ? await apiFetch('/api/v1/credentials', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                    : await apiFetch(url);
+                const tbody = document.getElementById('cred-table-body');
+                const list = data.credentials || [];
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No credentials found.</td></tr>';
+                } else {
+                    tbody.innerHTML = list.map(c => `<tr>
+                        <td class="mono" style="font-size:0.6rem;">${escape(c.ncn)}</td>
+                        <td>${escape(c.student_name)}</td>
+                        <td>${escape(c.course_name)}</td>
+                        <td>${escape(c.degree_type)}</td>
+                        <td>${c.grad_year}</td>
+                        <td><span class="badge ${c.status}">${c.status}</span></td>
+                        <td class="mono" style="font-size:0.5rem;">${c.tx_hash ? '⛓ Anchored' : '◌ Pending'}</td>
+                        <td class="status-actions">
+                            ${c.status !== 'active' ? `<button onclick="updateCredStatus('${c.ncn}','active')">Activate</button>` : ''}
+                            ${c.status !== 'suspended' ? `<button onclick="updateCredStatus('${c.ncn}','suspended')">Suspend</button>` : ''}
+                            ${c.status !== 'revoked' ? `<button onclick="updateCredStatus('${c.ncn}','revoked')">Revoke</button>` : ''}
+                        </td>
+                    </tr>`).join('');
+                }
+                renderPagination('cred-pagination', data.pagination, p => { credPage = p; loadCredentials(); });
+            } catch(e) {
+                document.getElementById('cred-table-body').innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--revoked);font-size:0.7rem;">${escape(e.message)}</td></tr>`;
+            }
+        }
+        loadCredentials();
+        document.getElementById('cred-search-btn').addEventListener('click', () => { credPage = 1; loadCredentials(); });
+        document.getElementById('cred-status-filter').addEventListener('change', () => { credPage = 1; loadCredentials(); });
+        document.getElementById('cred-search').addEventListener('keydown', e => { if (e.key === 'Enter') { credPage = 1; loadCredentials(); } });
+
+        window.updateCredStatus = async (ncn, status) => {
+            try {
+                await apiFetch('/api/v1/credential?ncn=' + encodeURIComponent(ncn), {
+                    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status, reason: 'Admin action via terminal' })
+                });
+                loadCredentials(); loadDashboard();
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+
+        // ── Transcripts Tab ──
+        let transPage = 1;
+        async function loadTranscripts() {
+            const search = document.getElementById('trans-search').value;
+            const status = document.getElementById('trans-status-filter').value;
+            const params = new URLSearchParams({ page: transPage, limit: 15 });
+            if (status) params.set('status', status);
+            const url = '/api/v1/transcripts?' + params.toString();
+            const body = search ? { q: search } : null;
+
+            try {
+                const data = body ? await apiFetch('/api/v1/transcripts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+                    : await apiFetch(url);
+                const tbody = document.getElementById('trans-table-body');
+                const list = data.transcripts || [];
+                if (list.length === 0) {
+                    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-faint);font-size:0.7rem;">No transcripts found.</td></tr>';
+                } else {
+                    tbody.innerHTML = list.map(t => `<tr>
+                        <td class="mono" style="font-size:0.6rem;">${escape(t.ncn)}</td>
+                        <td>${escape(t.student_name)}</td>
+                        <td>${escape(t.course_name)}</td>
+                        <td>${t.cgpa || '—'}</td>
+                        <td>${t.total_credits || 0}</td>
+                        <td><a href="#" onclick="viewSubjects('${t.ncn}');return false;" style="color:var(--gold);font-size:0.65rem;">${t.subjects_count || 0} subjects →</a></td>
+                        <td><span class="badge ${t.status}">${t.status}</span></td>
+                        <td class="status-actions">
+                            ${t.status !== 'active' ? `<button onclick="updateTransStatus('${t.ncn}','active')">Activate</button>` : ''}
+                            ${t.status !== 'suspended' ? `<button onclick="updateTransStatus('${t.ncn}','suspended')">Suspend</button>` : ''}
+                            ${t.status !== 'revoked' ? `<button onclick="updateTransStatus('${t.ncn}','revoked')">Revoke</button>` : ''}
+                        </td>
+                    </tr>`).join('');
+                }
+                renderPagination('trans-pagination', data.pagination, p => { transPage = p; loadTranscripts(); });
+            } catch(e) {
+                document.getElementById('trans-table-body').innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--revoked);font-size:0.7rem;">${escape(e.message)}</td></tr>`;
+            }
+        }
+        loadTranscripts();
+        document.getElementById('trans-search-btn').addEventListener('click', () => { transPage = 1; loadTranscripts(); });
+        document.getElementById('trans-status-filter').addEventListener('change', () => { transPage = 1; loadTranscripts(); });
+        document.getElementById('trans-search').addEventListener('keydown', e => { if (e.key === 'Enter') { transPage = 1; loadTranscripts(); } });
+
+        window.updateTransStatus = async (ncn, status) => {
+            try {
+                await apiFetch('/api/v1/transcript?ncn=' + encodeURIComponent(ncn), {
+                    method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ status, reason: 'Admin action via terminal' })
+                });
+                loadTranscripts();
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+
+        window.viewSubjects = async (ncn) => {
+            try {
+                const data = await apiFetch('/api/v1/transcript?ncn=' + encodeURIComponent(ncn));
+                const modal = document.getElementById('subject-modal');
+                document.getElementById('modal-title').textContent = 'Transcript: ' + ncn;
+                document.getElementById('modal-student-info').textContent = data.student_name + ' · ' + data.course_name + ' · CGPA: ' + (data.cgpa || '—') + ' · ' + (data.subjects?.length || 0) + ' subjects';
+                const container = document.getElementById('modal-subjects');
+                const subjects = data.subjects || [];
+                container.innerHTML = subjects.map(s => `
+                    <div class="subject-row">
+                        <span class="mono">${escape(s.course_code)}</span>
+                        <span>${escape(s.course_title)}</span>
+                        <span>${s.credit_units}</span>
+                        <span>${s.score}</span>
+                        <span><strong>${escape(s.grade)}</strong></span>
+                    </div>
+                `).join('');
+                if (subjects.length === 0) container.innerHTML = '<p style="color:var(--text-faint);font-size:0.7rem;">No subjects found.</p>';
+                modal.classList.add('visible');
+            } catch(e) { alert('Error: ' + e.message); }
+        };
+
+        // ── CSV Tools Tab ──
+        document.getElementById('validate-csv-btn').addEventListener('click', async () => {
+            const csv = document.getElementById('validate-csv-input').value;
+            if (!csv.trim()) { alert('Paste CSV content first.'); return; }
+            const div = document.getElementById('validation-result');
+            div.style.display = 'block';
+            div.innerHTML = '<p style="color:var(--text-muted);font-size:0.7rem;">Validating...</p>';
+            try {
+                const res = await fetch('/api/v1/csv?action=validate', {
+                    method: 'POST', headers: { ...API_HEADERS, 'Content-Type': 'text/plain' }, body: csv
+                });
+                const data = await res.json();
+                div.innerHTML = `<div style="padding:16px;border-radius:8px;background:${data.valid ? 'rgba(46,204,140,0.05)' : 'rgba(229,57,53,0.05)'};border:1px solid ${data.valid ? 'rgba(46,204,140,0.2)' : 'rgba(229,57,53,0.2)'};">
+                    <p style="font-weight:600;margin-bottom:8px;">${data.valid ? '✓ Valid' : '✗ Invalid'}</p>
+                    <p style="font-size:0.7rem;color:var(--text-muted);">Type: ${data.type} · Rows: ${data.row_count} · Students: ${data.student_count}</p>
+                    ${data.errors?.length ? `<div style="margin-top:8px;max-height:200px;overflow-y:auto;">${data.errors.map(e => `<div style="font-size:0.65rem;padding:2px 0;font-family:'JetBrains Mono',monospace;color:var(--revoked);">${escape(e)}</div>`).join('')}</div>` : ''}
+                </div>`;
+            } catch(e) {
+                div.innerHTML = `<div style="padding:12px;background:rgba(229,57,53,0.08);border-radius:8px;font-size:0.7rem;color:var(--revoked);">${escape(e.message)}</div>`;
+            }
+        });
+
+        // ── Pagination Helper ──
+        function renderPagination(containerId, pagination, onPage) {
+            const div = document.getElementById(containerId);
+            if (!pagination || pagination.totalPages <= 1) { div.innerHTML = ''; return; }
+            div.innerHTML = `
+                <button ${pagination.page <= 1 ? 'disabled' : ''} onclick="window._goToPage('${containerId}', ${pagination.page - 1})">← Prev</button>
+                <span>Page ${pagination.page} of ${pagination.totalPages} (${pagination.total} total)</span>
+                <button ${pagination.page >= pagination.totalPages ? 'disabled' : ''} onclick="window._goToPage('${containerId}', ${pagination.page + 1})">Next →</button>
+            `;
+        }
+        window._goToPage = function(containerId, page) {
+            if (containerId === 'cred-pagination') { credPage = page; loadCredentials(); }
+            else if (containerId === 'trans-pagination') { transPage = page; loadTranscripts(); }
+        };
+
+        // ── Close modal on overlay click ──
+        document.getElementById('subject-modal').addEventListener('click', function(e) {
+            if (e.target === this) this.classList.remove('visible');
+        });
+
+        // ── Keyboard shortcut: Escape closes modal ──
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') document.getElementById('subject-modal').classList.remove('visible');
+        });
+
+    })();
     </script>
 </body>
 </html>
