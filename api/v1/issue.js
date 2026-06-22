@@ -93,7 +93,7 @@ async function processCombined(sql, inst, rows, pepper, wallet) {
 
   for (const s of students) {
     try {
-      if (!s.name || !s.matric || !s.year || !s.course || !s.degree) { errors.push({ student: s.name||'?', error:'Missing fields' }); continue; }
+      if (!s.name || !s.matric || !s.year || !s.course || !s.degree) { errors.push({ student: s.name||'?', error:'Missing fields', fields: { name: s.name, matric: s.matric, year: s.year, course: s.course, degree: s.degree, subjects: s.subjects?.length } }); continue; }
 
       // Credential
       const cs = salt();
