@@ -182,8 +182,16 @@ export default async function handler(req, res) {
 
     if (!csvText || !csvText.trim()) return error(res, 'ACV_400', 'CSV data or JSON batch required');
 
-    const parsed = Papa.parse(csvText.trim(), { header: true, skipEmptyLines: true, transformHeader: h => h.trim().toLowerCase().replace(/\s+/g, '_') });
-    if (parsed.errors.length) return error(res, 'ACV_400', 'CSV error: ' + parsed.errors[0].message);
+    // Strip BOM and normalize line endings
+    const cleanCSV = csvText.replace(/^\uFEFF/, '').trim();
+    const parsed = Papa.parse(cleanCSV, { header: true, skipEmptyLines: true, transformHeader: h => h.trim().toLowerCase().replace(/\s+/g, '_') });
+    if (parsed.errors.length) {
+      const fieldErrors = parsed.errors.filter(e => e.type === 'FieldMismatch');
+      const otherErrors = parsed.errors.filter(e => e.type !== 'FieldMismatch');
+      if (otherErrors.length) return error(res, 'ACV_400', 'CSV error: ' + otherErrors[0].message);
+      // FieldMismatch is non-fatal — just log and continue with the data that parsed
+      console.log('CSV field mismatch warnings:', parsed.errors.length);
+    }
     if (!parsed.data.length) return error(res, 'ACV_400', 'CSV has no data rows');
 
     const headers = parsed.meta.fields || [];
