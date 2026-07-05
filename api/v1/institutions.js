@@ -111,14 +111,36 @@ export default async function handler(req, res) {
           throw insertErr;
         }
       }
-      await logAudit('institution_onboarded', null, inst.id, { name, short_code, type, quota, wallet: walletAddress }, req);
+      // Auto-authorize wallet on smart contract if contract is configured
+      let authorizedOnChain = false;
+      let authTxHash = null;
+      if (walletAddress && process.env.CONTRACT_ADDRESS && process.env.ALCHEMY_RPC_URL) {
+        try {
+          const { ethers } = await import('ethers');
+          const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_RPC_URL);
+          const deployer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+          const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS,
+            ['function authorizeInstitution(address,string,uint256)'], deployer);
+          const tx = await contract.authorizeInstitution(walletAddress, name, quota);
+          const receipt = await tx.wait();
+          authorizedOnChain = true;
+          authTxHash = receipt.hash;
+        } catch (e) {
+          console.error('AUTO_AUTHORIZE_WARN:', e.message);
+        }
+      }
+
+      await logAudit('institution_onboarded', null, inst.id, { name, short_code, type, quota, wallet: walletAddress, authorized_on_chain: authorizedOnChain }, req);
       return res.status(201).json({
         success: true,
         institution_id: inst.id,
         token_id: inst.token_id,
         wallet_address: walletAddress,
+        authorized_on_chain: authorizedOnChain,
+        auth_tx_hash: authTxHash,
+        warnings: !authorizedOnChain && walletAddress ? ['Wallet generated but not authorized on-chain. Use /api/v1/institutions?action=authorize-contract or run Super Admin setup.'] : undefined,
         message: walletAddress
-          ? `Institution onboarded. Wallet ${walletAddress} generated. Share the Token ID with the registrar. Authorize this wallet on the smart contract.`
+          ? `Institution onboarded. Token ID: ${inst.token_id}. ${authorizedOnChain ? 'Wallet authorized on-chain.' : 'Authorize wallet on smart contract to enable anchoring.'}`
           : 'Institution onboarded. No wallet generated — connect one later.'
       });
     }
@@ -153,6 +175,42 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, institution: inst });
       }
 
+      if (action === 'authorize-contract') {
+        if (!process.env.CONTRACT_ADDRESS || !process.env.ALCHEMY_RPC_URL)
+          return error(res, 'ACV_400', 'Blockchain not configured. Set CONTRACT_ADDRESS and ALCHEMY_RPC_URL.');
+        const [inst] = await sql`SELECT id, name, wallet_address, issuance_quota FROM institutions WHERE id=${id}`;
+        if (!inst) return error(res, 'ACV_404', 'Not found', 404);
+        if (!inst.wallet_address) return error(res, 'ACV_400', 'Institution has no wallet. Generate one first.');
+        try {
+          const { ethers } = await import('ethers');
+          const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_RPC_URL);
+          const deployer = new ethers.Wallet(process.env.PRIVATE_KEY, provider);
+          const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS,
+            ['function authorizeInstitution(address,string,uint256)',
+             'function institutions(address) view returns(bool,uint256,uint256,string)'], deployer);
+
+          // Check if already authorized
+          try {
+            const [isAuth] = await contract.institutions(inst.wallet_address);
+            if (isAuth)
+              return res.status(200).json({ success: true, message: 'Already authorized on-chain', wallet_address: inst.wallet_address });
+          } catch (e) { /* proceed */ }
+
+          const tx = await contract.authorizeInstitution(inst.wallet_address, inst.name, inst.issuance_quota);
+          const receipt = await tx.wait();
+          await logAudit('institution_authorized_on_chain', null, id, { wallet_address: inst.wallet_address, tx_hash: receipt.hash }, req);
+          return res.status(200).json({
+            success: true,
+            message: `Wallet ${inst.wallet_address} authorized on-chain. Quota: ${inst.issuance_quota}`,
+            tx_hash: receipt.hash,
+            wallet_address: inst.wallet_address
+          });
+        } catch (e) {
+          console.error('AUTHORIZE_ERR:', e.message);
+          return error(res, 'ACV_500', `Authorize failed: ${e.message}`, 500);
+        }
+      }
+
       if (action === 'status') {
         const { is_active } = req.body;
         if (typeof is_active !== 'boolean') return error(res, 'ACV_400', 'is_active (boolean) required');
@@ -169,7 +227,7 @@ export default async function handler(req, res) {
         return res.status(200).json({ success: true, message: is_active ? 'Institution reactivated' : 'Institution deactivated. All active credentials and transcripts have been revoked.', institution: inst });
       }
 
-      return error(res, 'ACV_400', 'Invalid action. Use: quota, status');
+      return error(res, 'ACV_400', 'Invalid action. Use: authorize-contract, quota, status');
     }
 
     // ── DELETE: Deactivate ──

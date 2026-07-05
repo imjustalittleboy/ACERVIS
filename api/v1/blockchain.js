@@ -21,6 +21,62 @@ export default async function handler(req, res) {
     // ── GET: Status ──
     if (req.method === 'GET') {
       const { ethers } = await import('ethers');
+      const view = req.query.view;
+
+      // Super admin: show all institution wallets + contract state
+      if (isSuperAdmin && view === 'institutions') {
+        if (!process.env.ALCHEMY_RPC_URL || !process.env.CONTRACT_ADDRESS)
+          return res.status(200).json({ configured: false, institutions: [] });
+
+        const provider = new ethers.JsonRpcProvider(process.env.ALCHEMY_RPC_URL);
+        const code = await provider.getCode(process.env.CONTRACT_ADDRESS);
+        const contractDeployed = code !== '0x';
+
+        const institutions = await sql`SELECT id, name, short_code, wallet_address, issuance_quota, issued_count FROM institutions WHERE wallet_address IS NOT NULL AND is_active = TRUE`;
+        const instList = [];
+
+        let contract;
+        if (contractDeployed) {
+          contract = new ethers.Contract(process.env.CONTRACT_ADDRESS,
+            ['function institutions(address) view returns(bool,uint256,uint256,string)'], provider);
+        }
+
+        for (const inst of institutions) {
+          let balance = '?';
+          try { balance = ethers.formatEther(await provider.getBalance(inst.wallet_address)); } catch (e) {}
+
+          let authorizedOnChain = false;
+          try {
+            if (contractDeployed) {
+              const result = await contract.institutions(inst.wallet_address);
+              authorizedOnChain = result[0]; // first return value is isAuthorized
+            }
+          } catch (e) {}
+
+          const [{ count: credCount }] = await sql`SELECT COUNT(*) FROM credentials WHERE institution_id=${inst.id} AND tx_hash IS NULL`;
+          const [{ count: transCount }] = await sql`SELECT COUNT(*) FROM transcripts WHERE institution_id=${inst.id} AND tx_hash IS NULL`;
+
+          instList.push({
+            id: inst.id,
+            name: inst.name,
+            short_code: inst.short_code,
+            wallet_address: inst.wallet_address,
+            balance,
+            authorized_on_chain: authorizedOnChain,
+            quota: inst.issuance_quota,
+            issued: inst.issued_count,
+            pending_anchors: parseInt(credCount, 10) + parseInt(transCount, 10)
+          });
+        }
+
+        return res.status(200).json({
+          configured: true,
+          contract_deployed: contractDeployed,
+          contract_address: process.env.CONTRACT_ADDRESS,
+          institutions: instList
+        });
+      }
+
       const status = { configured: false, network: null, contract: null, wallet: null, pending: 0 };
 
       if (process.env.ALCHEMY_RPC_URL && process.env.CONTRACT_ADDRESS) {
@@ -83,6 +139,7 @@ export default async function handler(req, res) {
       const contract = new ethers.Contract(process.env.CONTRACT_ADDRESS,
         ['function anchorCredential(bytes32) external'], wallet);
       const anchored = [];
+      const failures = [];
 
       for (const r of pendingCreds) {
         try {
@@ -90,7 +147,13 @@ export default async function handler(req, res) {
           const receipt = await tx.wait();
           await sql`UPDATE credentials SET tx_hash=${receipt.hash},anchored_at=NOW() WHERE ncn=${r.ncn}`;
           anchored.push({ ncn: r.ncn, type: 'credential', tx_hash: receipt.hash });
-        } catch (e) { console.error('ANCHOR_ERR:', r.ncn, e.message); }
+        } catch (e) {
+          console.error('ANCHOR_ERR:', r.ncn, e.message);
+          let reason = e.reason || e.message;
+          if (e.code === 'INSUFFICIENT_FUNDS') reason = 'Insufficient POL for gas';
+          else if (e.reason?.includes('Unauthorized')) reason = 'Wallet not authorized on smart contract';
+          failures.push({ ncn: r.ncn, type: 'credential', error: reason });
+        }
       }
       for (const r of pendingTrans) {
         try {
@@ -98,11 +161,17 @@ export default async function handler(req, res) {
           const receipt = await tx.wait();
           await sql`UPDATE transcripts SET tx_hash=${receipt.hash},anchored_at=NOW() WHERE ncn=${r.ncn}`;
           anchored.push({ ncn: r.ncn, type: 'transcript', tx_hash: receipt.hash });
-        } catch (e) { console.error('ANCHOR_ERR:', r.ncn, e.message); }
+        } catch (e) {
+          console.error('ANCHOR_ERR:', r.ncn, e.message);
+          let reason = e.reason || e.message;
+          if (e.code === 'INSUFFICIENT_FUNDS') reason = 'Insufficient POL for gas';
+          else if (e.reason?.includes('Unauthorized')) reason = 'Wallet not authorized on smart contract';
+          failures.push({ ncn: r.ncn, type: 'transcript', error: reason });
+        }
       }
 
-      await logAudit('blockchain_anchor_retry', instId, null, { anchored: anchored.length }, req);
-      return res.status(200).json({ success: true, anchored: anchored.length, pending_remaining: (pendingCreds.length + pendingTrans.length) - anchored.length, results: anchored });
+      await logAudit('blockchain_anchor_retry', instId, null, { anchored: anchored.length, failures: failures.length }, req);
+      return res.status(200).json({ success: true, anchored: anchored.length, failed: failures.length, pending_remaining: (pendingCreds.length + pendingTrans.length) - anchored.length - failures.length, results: anchored, failures: failures.length > 0 ? failures : undefined });
     }
 
     // ── POST: Fund Gas (super admin distributes POL to all institution wallets) ──

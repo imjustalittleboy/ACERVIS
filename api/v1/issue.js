@@ -45,8 +45,14 @@ async function anchorHash(hash, wallet) {
       ['function anchorCredential(bytes32) external'], wallet);
     const tx = await c.anchorCredential('0x' + hash);
     const r = await tx.wait();
-    return r.hash;
-  } catch (e) { console.error('ANCHOR_WARN:', e.message); return null; }
+    return { txHash: r.hash };
+  } catch (e) {
+    console.error('ANCHOR_ERR:', e.message);
+    let reason = e.reason || e.message;
+    if (e.code === 'INSUFFICIENT_FUNDS') reason = 'Insufficient POL for gas. Fund this wallet using Super Admin → Fund Gas.';
+    else if (e.reason?.includes('Unauthorized')) reason = 'Wallet not authorized on smart contract. Authorize via Super Admin → Blockchain.';
+    return { error: reason };
+  }
 }
 
 // ─── Credential-Only ──────────────────────────────────────
@@ -71,14 +77,20 @@ async function processCredentials(sql, inst, rows, pepper, wallet) {
     } catch (e) { errors.push({ row: r.student_name || '?', error: e.message }); }
   }
   let txHashes = [];
+  let anchorErrors = [];
   if (results.length && process.env.CONTRACT_ADDRESS && wallet) {
     for (const r of results) {
-      const tx = await anchorHash(r.hash, wallet);
-      if (tx) { txHashes.push({ ncn: r.ncn, txHash: tx }); await sql`UPDATE credentials SET tx_hash=${tx},anchored_at=NOW() WHERE ncn=${r.ncn}`; }
+      const result = await anchorHash(r.hash, wallet);
+      if (result?.txHash) {
+        txHashes.push({ ncn: r.ncn, txHash: result.txHash });
+        await sql`UPDATE credentials SET tx_hash=${result.txHash},anchored_at=NOW() WHERE ncn=${r.ncn}`;
+      } else if (result?.error) {
+        anchorErrors.push({ ncn: r.ncn, error: result.error });
+      }
     }
   }
   if (results.length) await sql`UPDATE institutions SET issued_count=issued_count+${results.length},last_activity_at=NOW() WHERE id=${inst.id}`;
-  return { results, errors, txHashes };
+  return { results, errors, txHashes, anchorErrors };
 }
 
 // ─── Combined (Credential + Transcript) ───────────────────
@@ -124,16 +136,27 @@ async function processCombined(sql, inst, rows, pepper, wallet) {
   }
 
   let txHashes = [];
+  let anchorErrors = [];
   if (results.length && process.env.CONTRACT_ADDRESS && wallet) {
     for (const r of results) {
       const ct = await anchorHash(r.credential.hash, wallet);
-      if (ct) { txHashes.push({ ncn:r.credential.ncn, type:'credential', txHash:ct }); await sql`UPDATE credentials SET tx_hash=${ct},anchored_at=NOW() WHERE ncn=${r.credential.ncn}`; }
+      if (ct?.txHash) {
+        txHashes.push({ ncn:r.credential.ncn, type:'credential', txHash:ct.txHash });
+        await sql`UPDATE credentials SET tx_hash=${ct.txHash},anchored_at=NOW() WHERE ncn=${r.credential.ncn}`;
+      } else if (ct?.error) {
+        anchorErrors.push({ ncn:r.credential.ncn, type:'credential', error:ct.error });
+      }
       const tt = await anchorHash(r.transcript.hash, wallet);
-      if (tt) { txHashes.push({ ncn:r.transcript.ncn, type:'transcript', txHash:tt }); await sql`UPDATE transcripts SET tx_hash=${tt},anchored_at=NOW() WHERE ncn=${r.transcript.ncn}`; }
+      if (tt?.txHash) {
+        txHashes.push({ ncn:r.transcript.ncn, type:'transcript', txHash:tt.txHash });
+        await sql`UPDATE transcripts SET tx_hash=${tt.txHash},anchored_at=NOW() WHERE ncn=${r.transcript.ncn}`;
+      } else if (tt?.error) {
+        anchorErrors.push({ ncn:r.transcript.ncn, type:'transcript', error:tt.error });
+      }
     }
   }
   if (results.length) await sql`UPDATE institutions SET issued_count=issued_count+${results.length},last_activity_at=NOW() WHERE id=${inst.id}`;
-  return { results, errors, txHashes };
+  return { results, errors, txHashes, anchorErrors };
 }
 
 // ─── Main ─────────────────────────────────────────────────
@@ -177,8 +200,8 @@ export default async function handler(req, res) {
       if (inst.issued_count + req.body.batch.length > inst.issuance_quota)
         return error(res, 'ACV_409', 'Quota exceeded', 403);
       const result = await processCredentials(sql, inst, req.body.batch, pepper, wallet);
-      await logAudit('batch_issue', inst.id, null, { count: result.results.length, errors: result.errors.length }, req);
-      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes, blockchain_signing: !!wallet });
+      await logAudit('batch_issue', inst.id, null, { count: result.results.length, errors: result.errors.length, anchorErrors: result.anchorErrors?.length }, req);
+      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, tx_hashes: result.txHashes, anchor_errors: result.anchorErrors?.length ? result.anchorErrors : undefined, blockchain_signing: !!wallet });
     }
 
     if (!csvText || !csvText.trim()) return error(res, 'ACV_400', 'CSV data or JSON batch required');
@@ -206,10 +229,10 @@ export default async function handler(req, res) {
       if (inst.issued_count + studentCount > inst.issuance_quota)
         return error(res, 'ACV_409', 'Quota exceeded', 403);
       const result = await processCombined(sql, inst, parsed.data, pepper, wallet);
-      await logAudit('batch_issue', inst.id, null, { csvType: 'combined', students: result.results.length, errors: result.errors.length, txCount: result.txHashes?.length }, req);
+      await logAudit('batch_issue', inst.id, null, { csvType: 'combined', students: result.results.length, errors: result.errors.length, txCount: result.txHashes?.length, anchorErrors: result.anchorErrors?.length }, req);
       // Debug: show first parsed row
       const debugSample = parsed.data[0] ? Object.entries(parsed.data[0]).slice(0, 8).map(([k,v]) => `${k}=${v}`).join(', ') : 'no data';
-      return res.status(200).json({ success: true, csv_type: 'combined', summary: { total_students: result.results.length, errors: result.errors.length }, results: result.results, errors: result.errors, tx_hashes: result.txHashes, blockchain_signing: !!wallet, _debug: { headers: parsed.meta.fields, sample: debugSample }, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
+      return res.status(200).json({ success: true, csv_type: 'combined', summary: { total_students: result.results.length, errors: result.errors.length }, results: result.results, errors: result.errors, tx_hashes: result.txHashes, anchor_errors: result.anchorErrors?.length ? result.anchorErrors : undefined, blockchain_signing: !!wallet, _debug: { headers: parsed.meta.fields, sample: debugSample }, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
     }
 
     if (isCredential && !hasSubjectCols) {
@@ -217,9 +240,9 @@ export default async function handler(req, res) {
       if (inst.issued_count + rows.length > inst.issuance_quota)
         return error(res, 'ACV_409', 'Quota exceeded', 403);
       const result = await processCredentials(sql, inst, rows, pepper, wallet);
-      await logAudit('batch_issue', inst.id, null, { csvType: 'credential', count: result.results.length, errors: result.errors.length }, req);
+      await logAudit('batch_issue', inst.id, null, { csvType: 'credential', count: result.results.length, errors: result.errors.length, anchorErrors: result.anchorErrors?.length }, req);
       const debugSample2 = rows[0] ? `student_name=${rows[0].student_name}, matric=${rows[0].matric_number}, year=${rows[0].graduation_year}, course=${rows[0].course_name}, degree=${rows[0].degree_type}` : 'no data';
-      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, errors: result.errors.length > 0 ? result.errors : undefined, tx_hashes: result.txHashes, blockchain_signing: !!wallet, _debug: { headers: headers, sample: debugSample2 }, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
+      return res.status(200).json({ success: true, summary: { issued: result.results.length, errors: result.errors.length }, results: result.results, errors: result.errors.length > 0 ? result.errors : undefined, tx_hashes: result.txHashes, anchor_errors: result.anchorErrors?.length ? result.anchorErrors : undefined, blockchain_signing: !!wallet, _debug: { headers: headers, sample: debugSample2 }, warnings: !process.env.CONTRACT_ADDRESS ? ['Blockchain not configured'] : undefined });
     }
 
     if (isCredential && hasSubjectCols && !isCombined)

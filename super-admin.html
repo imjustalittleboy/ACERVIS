@@ -139,6 +139,7 @@
     <button class="nav-btn" data-tab="onboard"><script>document.write(Icons.plus)</script>Onboard Institution</button>
     <button class="nav-btn" data-tab="institutions"><script>document.write(Icons.institution)</script>All Institutions</button>
     <button class="nav-btn" data-tab="audit"><script>document.write(Icons.activity)</script>Audit Log</button>
+    <button class="nav-btn" data-tab="blockchain"><script>document.write(Icons.link)</script>Blockchain</button>
     <div style="margin-top:auto;padding-top:12px;border-top:1px solid var(--border-faint);font-size:0.55rem;font-family:'JetBrains Mono',monospace;color:var(--text-faint);">
       <div>SUPER_ADMIN: <span style="color:var(--success);">Active</span></div>
       <div style="display:flex;gap:8px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border-faint);">
@@ -159,6 +160,7 @@
         <button class="nav-btn" data-tab="onboard"><script>document.write(Icons.plus)</script>Onboard Institution</button>
         <button class="nav-btn" data-tab="institutions"><script>document.write(Icons.institution)</script>All Institutions</button>
         <button class="nav-btn" data-tab="audit"><script>document.write(Icons.activity)</script>Audit Log</button>
+        <button class="nav-btn" data-tab="blockchain"><script>document.write(Icons.link)</script>Blockchain</button>
       </nav>
       <div class="sidebar-foot">
         <div>SUPER_ADMIN: <span style="color:var(--success);">Active</span></div>
@@ -273,6 +275,38 @@
           </table>
           <div class="pagination" id="audit-pagination"></div>
         </div>
+      </section>
+      <!-- ═══ BLOCKCHAIN ═══ -->
+      <section class="tab-content" id="tab-blockchain">
+        <div class="page-hdr">
+          <div class="eyebrow">Smart Contract</div>
+          <h1>Polygon Amoy <em>Blockchain</em></h1>
+          <p>Authorize institution wallets on-chain and manage gas funding. Wallets must be authorized on the contract before they can anchor credentials.</p>
+        </div>
+        <div class="stat-grid" id="bc-stats">
+          <div class="stat-card"><div class="lbl">Contract Deployed</div><div class="val" id="bc-deployed">—</div></div>
+          <div class="stat-card"><div class="lbl">Total Wallets</div><div class="val" id="bc-total-wallets">—</div></div>
+          <div class="stat-card"><div class="lbl">Authorized On-Chain</div><div class="val gold" id="bc-authorized">—</div></div>
+          <div class="stat-card"><div class="lbl">Unauthorized</div><div class="val" id="bc-unauthorized" style="color:var(--revoked);">—</div></div>
+          <div class="stat-card"><div class="lbl">Pending Anchors</div><div class="val" id="bc-pending">—</div></div>
+        </div>
+        <div class="card">
+          <div class="card-hdr" style="display:flex;justify-content:space-between;align-items:center;">
+            <span>Institution Wallets</span>
+            <div class="btn-group">
+              <button class="btn btn-primary btn-sm" id="bc-fund-all" onclick="fundAllGas()">Fund All Gas</button>
+              <button class="btn btn-secondary btn-sm" onclick="loadBlockchain()"><script>document.write(Icons.refreshCw)</script>Refresh</button>
+            </div>
+          </div>
+          <div class="card-bd" style="padding:0;">
+            <div class="tbl-wrap" style="border:none;border-radius:0;">
+              <table><thead><tr><th>Institution</th><th>Wallet</th><th>Balance (POL)</th><th>On-Chain</th><th>Quota</th><th>Issued</th><th>Pending</th><th>Actions</th></tr></thead>
+                <tbody id="bc-table"><tr><td colspan="8" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:32px;">Loading…</td></tr></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        <div id="bc-response" class="response-msg mt-4"></div>
       </section>
     </main>
   </div>
@@ -412,6 +446,90 @@
     loadAudit();
     document.getElementById('audit-refresh').addEventListener('click', () => { window._auditPage = 1; loadAudit(); });
     document.getElementById('audit-filter').addEventListener('change', () => { window._auditPage = 1; loadAudit(); });
+
+    // ── Blockchain ──
+    window.authorizeWallet = async (id) => {
+      const resp = document.getElementById('bc-response');
+      resp.textContent = '⟳ Authorizing on-chain…'; resp.className = 'response-msg visible';
+      try {
+        const r = await fetch('/api/v1/institutions?id=' + id + '&action=authorize-contract', { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...H } });
+        const d = await r.json();
+        if (r.ok) { resp.textContent = '✓ Wallet authorized on-chain. TX: ' + (d.tx_hash || 'done'); resp.className = 'response-msg visible success'; }
+        else { resp.textContent = '✗ ' + (d.error || d.message || 'Failed'); resp.className = 'response-msg visible error'; }
+      } catch (e) { resp.textContent = '✗ ' + e.message; resp.className = 'response-msg visible error'; }
+      loadBlockchain();
+    };
+
+    window.fundSingleWallet = async (id) => {
+      const amt = prompt('Amount of POL to send:', '0.05');
+      if (!amt || isNaN(amt) || parseFloat(amt) <= 0) return;
+      const resp = document.getElementById('bc-response');
+      resp.textContent = '⟳ Funding wallet…'; resp.className = 'response-msg visible';
+      try {
+        const r = await fetch('/api/v1/institutions?id=' + id + '&action=authorize-contract', { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...H } });
+        const ad = await r.json();
+        if (!r.ok) { resp.textContent = '✗ Failed to authorize: ' + (ad.error || ad.message); resp.className = 'response-msg visible error'; return; }
+        const r2 = await fetch('/api/v1/blockchain?action=fund-gas', { method: 'POST', headers: { 'Content-Type': 'application/json', ...H }, body: JSON.stringify({ amount: amt, institution_id: id }) });
+        const d = await r2.json();
+        if (r2.ok) {
+          const funded = d.results?.filter(x => !x.skipped).length || 0;
+          resp.textContent = '✓ Sent ' + amt + ' POL. ' + funded + ' wallet(s) funded.';
+          resp.className = 'response-msg visible success';
+        } else { resp.textContent = '✗ ' + (d.error || 'Failed'); resp.className = 'response-msg visible error'; }
+      } catch (e) { resp.textContent = '✗ ' + e.message; resp.className = 'response-msg visible error'; }
+      loadBlockchain();
+    };
+
+    window.fundAllGas = async () => {
+      const amt = prompt('Amount of POL per institution wallet:', '0.05');
+      if (!amt || isNaN(amt) || parseFloat(amt) <= 0) return;
+      const resp = document.getElementById('bc-response');
+      resp.textContent = '⟳ Distributing gas to all institutions…'; resp.className = 'response-msg visible';
+      try {
+        const r = await fetch('/api/v1/blockchain?action=fund-gas', { method: 'POST', headers: { 'Content-Type': 'application/json', ...H }, body: JSON.stringify({ amount: amt }) });
+        const d = await r.json();
+        if (r.ok) {
+          resp.textContent = '✓ Gas distributed. Funded: ' + (d.summary?.funded || 0) + ', Skipped: ' + (d.summary?.skipped || 0);
+          resp.className = 'response-msg visible success';
+        } else { resp.textContent = '✗ ' + (d.error || 'Failed'); resp.className = 'response-msg visible error'; }
+      } catch (e) { resp.textContent = '✗ ' + e.message; resp.className = 'response-msg visible error'; }
+      loadBlockchain();
+    };
+
+    async function loadBlockchain() {
+      try {
+        const d = await (await fetch('/api/v1/blockchain?view=institutions', { headers: H })).json();
+        document.getElementById('bc-deployed').textContent = d.contract_deployed ? 'Yes ✓' : 'No ✗';
+        const list = d.institutions || [];
+        const totalW = list.length;
+        const authorized = list.filter(i => i.authorized_on_chain).length;
+        const unauthorized = totalW - authorized;
+        const pendingTotal = list.reduce((s, i) => s + (i.pending_anchors || 0), 0);
+
+        document.getElementById('bc-total-wallets').textContent = totalW;
+        document.getElementById('bc-authorized').textContent = authorized;
+        document.getElementById('bc-unauthorized').textContent = unauthorized;
+        document.getElementById('bc-pending').textContent = pendingTotal;
+
+        const tb = document.getElementById('bc-table');
+        if (!list.length) { tb.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--text-faint);font-size:0.65rem;padding:32px;">No institution wallets found. Onboard institutions first.</td></tr>'; return; }
+        tb.innerHTML = list.map(i => `<tr>
+          <td>${esc(i.name)} <span class="mono" style="font-size:0.5rem;color:var(--text-faint);">(${esc(i.short_code)})</span></td>
+          <td class="mono" style="font-size:0.55rem;color:var(--text-faint);">${i.wallet_address ? i.wallet_address.slice(0,8)+'...'+i.wallet_address.slice(-4) : '—'}</td>
+          <td class="mono" style="font-size:0.6rem;${parseFloat(i.balance) < 0.01 ? 'color:var(--revoked);' : ''}">${i.balance} POL</td>
+          <td><span class="badge ${i.authorized_on_chain ? 'active' : 'inactive'}">${i.authorized_on_chain ? 'Authorized' : 'NOT Authorized'}</span></td>
+          <td>${i.quota?.toLocaleString() || 0}</td>
+          <td>${i.issued || 0}</td>
+          <td style="${i.pending_anchors ? 'color:var(--warning);' : ''}">${i.pending_anchors || 0}</td>
+          <td><div class="act-group">
+            ${!i.authorized_on_chain ? '<button onclick="authorizeWallet(\'' + i.id + '\')" style="color:var(--gold);border-color:var(--gold);">Authorize</button>' : ''}
+            <button onclick="fundSingleWallet(\'' + i.id + '\')">Fund Gas</button>
+          </div></td></tr>`).join('');
+      } catch (e) {
+        document.getElementById('bc-table').innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--revoked);font-size:0.65rem;">' + esc(e.message) + '</td></tr>';
+      }
+    }
+    loadBlockchain();
   })();
   </script>
 </body>
